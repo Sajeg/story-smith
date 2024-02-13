@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="what_do_you_want_to_do">Was möchtest du tun?</string>
+    <string name="new_story">Neue Geschichte</string>
+    <string name="dragons">Drachen</string>
+    <string name="vampires">Vampire</string>
+    <string name="app_name">Story Smith</string>
+    <string name="knights">Ritter</string>
+    <string name="princesses">Prinzessinen</string>
+    <string name="aliens">Aliens</string>
+    <string name="monsters">Monster</string>
+    <string name="robots">Roboter</string>
+    <string name="outlaws">Gesetzeslose</string>
+    <string name="fairies">Feen</string>
+    <string name="superheros">Superhelden</string>
+    <string name="magicians">Magier</string>
+    <string name="unicorns">Einhörner</string>
+    <string name="golems">Golems</string>
+    <string name="pirates">Piraten</string>
+    <string name="vikings">Wikinger</string>
+    <string name="slimes">Slimes</string>
+    <string name="what_should_the_story_be_about">Worum geht es in der Geschichte?</string>
+    <string name="let_s_create_a_new_story">Lass uns eine neue Geschichte erleben!</string>
+    <string name="hello">Hallo, %1$s</string>
+    <string name="dinosaurs">Dinosaurier</string>
+    <string name="which_beginning_do_you_prefer">Welchen Anfang findest du am besten?</string>
+</resources>

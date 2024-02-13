@@ -1,0 +1,26 @@
+<resources>
+    <string name="app_name">Story Smith</string>
+    <string name="what_do_you_want_to_do">What do you want to do?</string>
+    <string name="new_story">new story</string>
+    <string name="dragons">Dragons</string>
+    <string name="vampires">Vampires</string>
+    <string name="knights">Knights</string>
+    <string name="princesses">Princesses</string>
+    <string name="aliens">Aliens</string>
+    <string name="monsters">Monsters</string>
+    <string name="robots">Robots</string>
+    <string name="outlaws">Outlaws</string>
+    <string name="fairies">Fairies</string>
+    <string name="superheros">Superheros</string>
+    <string name="magicians">Magicians</string>
+    <string name="unicorns">Unicorns</string>
+    <string name="golems">Golems</string>
+    <string name="pirates">Pirates</string>
+    <string name="vikings">Vikings</string>
+    <string name="slimes">Slimes</string>
+    <string name="what_should_the_story_be_about">What should the Story be about?</string>
+    <string name="let_s_create_a_new_story">Let\'s create a new Story!</string>
+    <string name="hello">Hello, %1$s</string>
+    <string name="dinosaurs">Dinosaurs</string>
+    <string name="which_beginning_do_you_prefer">Which beginning do you prefer?</string>
+</resources>
