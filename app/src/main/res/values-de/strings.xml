@@ -24,4 +24,11 @@
     <string name="hello">Hallo, %1$s</string>
     <string name="dinosaurs">Dinosaurier</string>
     <string name="which_beginning_do_you_prefer">Welchen Anfang findest du am besten?</string>
+    <string name="cyberpunk">Cyberpunk</string>
+    <string name="space">Weltall</string>
+    <string name="wild_western">Wilder Westen</string>
+    <string name="city">Stadt</string>
+    <string name="countryside">Land</string>
+    <string name="sea">Meer</string>
+    <string name="where_should_the_story_take_place">Wo soll die Geschichte spielen?</string>
 </resources>
