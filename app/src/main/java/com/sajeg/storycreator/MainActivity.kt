@@ -191,6 +191,14 @@ fun StartNewStory(
     val userName = "Sajeg"
     val element = ChatHistory(role = "Initializer", content = "")
     var enableSelection by remember { mutableStateOf(true) }
+    val places: Array<String> = arrayOf(
+        stringResource(R.string.cyberpunk),
+        stringResource(R.string.space),
+        stringResource(R.string.wild_western),
+        stringResource(R.string.city),
+        stringResource(R.string.countryside),
+        stringResource(R.string.sea)
+    )
     val ideas: Array<String> = arrayOf(
         stringResource(R.string.outlaws),
         stringResource(R.string.robots),
@@ -216,118 +224,167 @@ fun StartNewStory(
     )
     val isKeyboardOpen by keyboardAsState()
     val selectedIdeas = remember { mutableStateListOf<String>() }
+    val selectedPlaces = remember { mutableStateListOf<String>() }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .safeDrawingPadding(),
         verticalArrangement = Arrangement.Top
     ) {
-        Text(
-            modifier = Modifier
-                .padding(horizontal = 15.dp)
-                .padding(top = 40.dp),
-            text = stringResource(R.string.hello, userName),
-            style = TextStyle(brush = Brush.linearGradient(colors = gradientColors)),
-            fontSize = 57.sp,
-            lineHeight = 64.sp,
-        )
         AnimatedVisibility(!isKeyboardOpen) {
-
             Text(
-                modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp),
+                modifier = Modifier
+                    .padding(horizontal = 15.dp)
+                    .padding(top = 40.dp),
+                text = stringResource(R.string.hello, userName),
+                style = TextStyle(brush = Brush.linearGradient(colors = gradientColors)),
+                fontSize = 57.sp,
+                lineHeight = 64.sp,
+            )
+            Text(
+                modifier = Modifier
+                    .padding(horizontal = 15.dp)
+                    .padding(bottom = 10.dp, top = 120.dp),
                 text = stringResource(R.string.let_s_create_a_new_story),
                 fontSize = 22.sp,
                 lineHeight = 28.sp,
             )
         }
 
-        Column(
+        LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Bottom
         ) {
             if (enableSelection) {
-                Card(
-                    modifier = Modifier.padding(horizontal = 15.dp)
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 15.dp)
-                            .padding(top = 15.dp)
-                            .fillMaxWidth(),
-                        text = stringResource(R.string.what_should_the_story_be_about),
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    FlowRow(
-                        modifier = modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp)
-                            .padding(bottom = 15.dp)
-                            .safeDrawingPadding(),
-                        horizontalArrangement = Arrangement.SpaceAround
+                val flowRowModifiers = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp)
+                    .padding(bottom = 15.dp)
+                    .safeDrawingPadding()
+                item {
+                    Card(
+                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp),
                     ) {
-                        for (idea in ideas) {
-                            FilterChip(
-                                modifier = modifier.padding(horizontal = 5.dp),
-                                selected = selectedIdeas.contains(idea),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                ),
-                                onClick = {
-                                    if (selectedIdeas.contains(idea)) {
-                                        selectedIdeas.remove(idea)
-                                    } else {
-                                        selectedIdeas.add(idea)
-                                    }
-                                },
-                                label = { Text(text = idea) }
-                            )
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 15.dp)
+                                .padding(top = 15.dp)
+                                .fillMaxWidth(),
+                            text = stringResource(R.string.where_should_the_story_take_place),
+                            fontSize = 22.sp,
+                            lineHeight = 28.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        FlowRow(
+                            modifier = flowRowModifiers,
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            for (place in places) {
+                                FilterChip(
+                                    modifier = modifier.padding(horizontal = 5.dp),
+                                    selected = selectedIdeas.contains(place),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                    ),
+                                    onClick = {
+                                        if (selectedIdeas.contains(place)) {
+                                            selectedIdeas.remove(place)
+                                        } else {
+                                            selectedIdeas.add(place)
+                                        }
+                                    },
+                                    label = { Text(text = place) }
+                                )
+                            }
                         }
                     }
                 }
-                EnterText(lastElement = element, onTextSubmitted = {
-                    enableSelection = false
-                    initStoryTelling(
-                        theme = "$it, ${selectedIdeas.joinToString()}",
-                        responseFromModel = { response: MutableList<String>, error: Boolean ->
-                            if (!error) {
-                                val beginning: MutableList<ChatHistory> = mutableListOf()
-                                for (candidate in response) {
-                                    val parts = candidate.split("{", "}")
-                                    val suggestions = parts[1].split(";").toTypedArray()
-                                    beginning.add(
-                                        ChatHistory(
-                                            role = "Gemini",
-                                            content = parts[0].trimEnd(),
-                                        )
-                                    )
-                                    beginning[beginning.lastIndex].addSuggestions(suggestions)
-                                }
-                                onProcessedBeginning(beginning)
-                            } else {
-                                val beginning = ChatHistory(
-                                    role = "Gemini",
-                                    content = "An error occurred: $response",
-                                    endOfChat = true
+                item {
+                    Card(
+                        modifier = Modifier.padding(horizontal = 15.dp),
+                        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
+                    ) {
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 15.dp)
+                                .padding(top = 15.dp)
+                                .fillMaxWidth(),
+                            text = stringResource(R.string.what_should_the_story_be_about),
+                            fontSize = 22.sp,
+                            lineHeight = 28.sp,
+                            textAlign = TextAlign.Center
+                        )
+                        FlowRow(
+                            modifier = flowRowModifiers,
+                            horizontalArrangement = Arrangement.SpaceAround
+                        ) {
+                            for (idea in ideas) {
+                                FilterChip(
+                                    modifier = modifier.padding(horizontal = 5.dp),
+                                    selected = selectedIdeas.contains(idea),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                    ),
+                                    onClick = {
+                                        if (selectedIdeas.contains(idea)) {
+                                            selectedIdeas.remove(idea)
+                                        } else {
+                                            selectedIdeas.add(idea)
+                                        }
+                                    },
+                                    label = { Text(text = idea) }
                                 )
-                                onProcessedBeginning(mutableListOf(beginning))
                             }
-                        })
-                })
+                        }
+                    }
+                }
             } else {
-                Column (
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ){
-                    CircularProgressIndicator(
-                        modifier = Modifier.width(80.dp),
-                        color = MaterialTheme.colorScheme.secondary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
-                    )
+                item {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 400.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.width(80.dp),
+                            color = MaterialTheme.colorScheme.secondary,
+                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        )
+                    }
                 }
             }
+        }
+        if(enableSelection) {
+            EnterText(lastElement = element, onTextSubmitted = {
+                enableSelection = false
+                initStoryTelling(
+                    theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
+                    responseFromModel = { response: MutableList<String>, error: Boolean ->
+                        if (!error) {
+                            val beginning: MutableList<ChatHistory> = mutableListOf()
+                            for (candidate in response) {
+                                val parts = candidate.split("{", "}")
+                                val suggestions = parts[1].split(";").toTypedArray()
+                                beginning.add(
+                                    ChatHistory(
+                                        role = "Gemini",
+                                        content = parts[0].trimEnd(),
+                                    )
+                                )
+                                beginning[beginning.lastIndex].addSuggestions(suggestions)
+                            }
+                            onProcessedBeginning(beginning)
+                        } else {
+                            val beginning = ChatHistory(
+                                role = "Gemini",
+                                content = "An error occurred: $response",
+                                endOfChat = true
+                            )
+                            onProcessedBeginning(mutableListOf(beginning))
+                        }
+                    })
+            })
         }
     }
 }
