@@ -5,6 +5,7 @@ import android.util.Log
 data class ChatHistory(
     var role: String,
     val content: String,
+    var wasReadAloud: Boolean = false,
     val endOfChat: Boolean = false,
     private var suggestions: Array<String> = arrayOf("","","")
 ) {

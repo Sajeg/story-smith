@@ -2,6 +2,8 @@ package com.sajeg.storycreator
 
 import android.app.Activity
 import android.os.Bundle
+import android.speech.tts.TextToSpeech
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -62,6 +64,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 
 class MainActivity : ComponentActivity() {
@@ -84,8 +87,10 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun Main(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     val history = remember { mutableStateListOf<ChatHistory>() }
     val beginnings = remember { mutableStateListOf<ChatHistory>() }
+    val tts = remember { initTextToSpeech(context) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     Column(
@@ -143,6 +148,14 @@ private fun Main(modifier: Modifier = Modifier) {
                 }
                 coroutineScope.launch {
                     listState.animateScrollToItem(index = history.size)
+                }
+                val lastElement = history[history.lastIndex]
+                if (lastElement.isModel() and !lastElement.wasReadAloud) {
+                    lastElement.wasReadAloud = true
+                    tts.setLanguage(Locale.GERMANY)
+                    tts.speak(lastElement.content, TextToSpeech.QUEUE_FLUSH, null, "MODEL_MESSAGE")
+
+
                 }
             }
             EnterText(
@@ -423,9 +436,14 @@ fun StartNewStory(
     }
 }
 
-@Composable
-fun TextToSpeech(text: String) {
-    //TODO
+
+fun initTextToSpeech(context: android.content.Context): TextToSpeech {
+    val tts = TextToSpeech(context) { status ->
+        if (status != TextToSpeech.SUCCESS) {
+            Log.e("StorySmithTTS", "Error Initializing TTS engine")
+        }
+    }
+    return tts
 }
 
 @Composable
