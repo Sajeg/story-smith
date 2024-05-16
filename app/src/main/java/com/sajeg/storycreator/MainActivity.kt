@@ -1,8 +1,12 @@
 package com.sajeg.storycreator
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
+import android.speech.RecognizerIntent
+import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
+import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -66,7 +70,7 @@ import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-
+val history = mutableStateListOf<ChatHistory>()
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,11 +92,12 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Main(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    val history = remember { mutableStateListOf<ChatHistory>() }
     val beginnings = remember { mutableStateListOf<ChatHistory>() }
     val tts = remember { initTextToSpeech(context) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
+    var ttsFinished by remember { mutableStateOf(false) }
+
     Column(
         verticalArrangement = Arrangement.Bottom,
         modifier = modifier
@@ -151,11 +156,27 @@ private fun Main(modifier: Modifier = Modifier) {
                 }
                 val lastElement = history[history.lastIndex]
                 if (lastElement.isModel() and !lastElement.wasReadAloud) {
+                    ttsFinished = false
                     lastElement.wasReadAloud = true
                     tts.setLanguage(Locale.GERMANY)
                     tts.speak(lastElement.content, TextToSpeech.QUEUE_FLUSH, null, "MODEL_MESSAGE")
+                    tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                        override fun onDone(utteranceId: String) {
+                            ttsFinished = true
+                            Log.d("StorySmithTTS", "Finished")
+                        }
 
+                        @Deprecated("Deprecated in Java")
+                        override fun onError(utteranceId: String?) {
+                        }
 
+                        override fun onStart(utteranceId: String) {
+                        }
+                    })
+                }
+                if (ttsFinished) {
+                    ttsFinished = false
+                    listenToUserInput(context)
                 }
             }
             EnterText(
@@ -319,7 +340,9 @@ fun StartNewStory(
                 }
                 item {
                     Card(
-                        modifier = Modifier.padding(horizontal = 15.dp).padding(bottom = 10.dp),
+                        modifier = Modifier
+                            .padding(horizontal = 15.dp)
+                            .padding(bottom = 10.dp),
                         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
                     ) {
                         Text(
@@ -445,6 +468,19 @@ fun initTextToSpeech(context: android.content.Context): TextToSpeech {
     }
     return tts
 }
+
+fun listenToUserInput(context: android.content.Context) {
+    Log.d("StorySmithSTT", "Start Listing")
+    val stt = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+    val listener = StoryActionRecognitionListener()
+    val intent = Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE)
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE")
+
+    stt.setRecognitionListener(listener)
+    stt.startListening(intent)
+}
+
 
 @Composable
 fun TextList(

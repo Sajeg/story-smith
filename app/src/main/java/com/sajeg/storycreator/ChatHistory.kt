@@ -14,7 +14,7 @@ data class ChatHistory(
         return role == "Gemini"
     }
     fun isInitializer(): Boolean{
-        Log.d("ChatHistory", (role == "Gemini").toString())
+        //Log.d("ChatHistory", (role == "Gemini").toString())
         return role == "Initializer"
     }
 
