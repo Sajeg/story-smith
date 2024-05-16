@@ -1,12 +1,19 @@
 package com.sajeg.storycreator
 
 
-
-class SaveManager (
-    val uniqueId: Int,
-    val lastEdited: Long = System.currentTimeMillis(),
+data class SaveManager (
     val userName: String,
-    val content: List<ChatHistory>
+    val history: List<List<ChatHistory>>
 ) {
 
 }
+
+//class AppSettingsSerializer : Serializer<AppSettings> {
+//    override fun readFrom(input: InputStream): AppSettings {
+//        // ...
+//    }
+//
+//    override fun writeTo(output: OutputStream, value: AppSettings) {
+//        // ...
+//    }
+//}

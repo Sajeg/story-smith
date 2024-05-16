@@ -8,8 +8,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -19,7 +17,6 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -31,7 +28,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
@@ -176,13 +172,12 @@ private fun Main(modifier: Modifier = Modifier) {
                         }
                     })
 
-                }
-            )
+                    }
+                )
+            }
         }
     }
-}
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StartNewStory(
     modifier: Modifier = Modifier,
@@ -191,6 +186,12 @@ fun StartNewStory(
     val userName = "Sajeg"
     val element = ChatHistory(role = "Initializer", content = "")
     var enableSelection by remember { mutableStateOf(true) }
+    val moods: Array<String> = arrayOf(
+        stringResource(R.string.happy),
+        stringResource(R.string.dark),
+        stringResource(R.string.thrilling),
+        stringResource(R.string.funny)
+    )
     val places: Array<String> = arrayOf(
         stringResource(R.string.cyberpunk),
         stringResource(R.string.space),
@@ -225,6 +226,7 @@ fun StartNewStory(
     val isKeyboardOpen by keyboardAsState()
     val selectedIdeas = remember { mutableStateListOf<String>() }
     val selectedPlaces = remember { mutableStateListOf<String>() }
+    val selectedMoods = remember { mutableStateListOf<String>() }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -275,34 +277,36 @@ fun StartNewStory(
                             lineHeight = 28.sp,
                             textAlign = TextAlign.Center
                         )
-                        FlowRow(
+                        LazyRow(
                             modifier = flowRowModifiers,
-                            horizontalArrangement = Arrangement.SpaceAround
                         ) {
-                            for (place in places) {
-                                FilterChip(
-                                    modifier = modifier.padding(horizontal = 5.dp),
-                                    selected = selectedIdeas.contains(place),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                    ),
-                                    onClick = {
-                                        if (selectedIdeas.contains(place)) {
-                                            selectedIdeas.remove(place)
-                                        } else {
-                                            selectedIdeas.add(place)
-                                        }
-                                    },
-                                    label = { Text(text = place) }
-                                )
+                            for (i in 0..places.lastIndex) {
+                                val place = places[i]
+                                item {
+                                    FilterChip(
+                                        modifier = modifier.padding(horizontal = 5.dp),
+                                        selected = selectedIdeas.contains(place),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                        ),
+                                        onClick = {
+                                            if (selectedIdeas.contains(place)) {
+                                                selectedIdeas.remove(place)
+                                            } else {
+                                                selectedIdeas.add(place)
+                                            }
+                                        },
+                                        label = { Text(text = place) }
+                                    )
+                                }
                             }
                         }
                     }
                 }
                 item {
                     Card(
-                        modifier = Modifier.padding(horizontal = 15.dp),
+                        modifier = Modifier.padding(horizontal = 15.dp).padding(bottom = 10.dp),
                         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
                     ) {
                         Text(
@@ -315,42 +319,72 @@ fun StartNewStory(
                             lineHeight = 28.sp,
                             textAlign = TextAlign.Center
                         )
-                        FlowRow(
-                            modifier = flowRowModifiers,
-                            horizontalArrangement = Arrangement.SpaceAround
+                        LazyRow(
+                            modifier = flowRowModifiers
                         ) {
-                            for (idea in ideas) {
-                                FilterChip(
-                                    modifier = modifier.padding(horizontal = 5.dp),
-                                    selected = selectedIdeas.contains(idea),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                    ),
-                                    onClick = {
-                                        if (selectedIdeas.contains(idea)) {
-                                            selectedIdeas.remove(idea)
-                                        } else {
-                                            selectedIdeas.add(idea)
-                                        }
-                                    },
-                                    label = { Text(text = idea) }
-                                )
+                            for (i in 0..ideas.lastIndex) {
+                                val idea = ideas[i]
+                                item {
+                                    FilterChip(
+                                        modifier = modifier.padding(horizontal = 5.dp),
+                                        selected = selectedIdeas.contains(idea),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                        ),
+                                        onClick = {
+                                            if (selectedIdeas.contains(idea)) {
+                                                selectedIdeas.remove(idea)
+                                            } else {
+                                                selectedIdeas.add(idea)
+                                            }
+                                        },
+                                        label = { Text(text = idea) }
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            } else {
                 item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(bottom = 400.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
+                    Card(
+                        modifier = Modifier.padding(horizontal = 15.dp)
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.width(80.dp),
-                            color = MaterialTheme.colorScheme.secondary,
-                            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                        Text(
+                            modifier = Modifier
+                                .padding(horizontal = 15.dp)
+                                .padding(top = 15.dp)
+                                .fillMaxWidth(),
+                            text = stringResource(R.string.what_is_the_mood_of_the_story),
+                            fontSize = 22.sp,
+                            lineHeight = 28.sp,
+                            textAlign = TextAlign.Center
                         )
+                        LazyRow(
+                            modifier = flowRowModifiers
+                        ) {
+                            for (i in 0..moods.lastIndex) {
+                                val mood = moods[i]
+                                item {
+                                    FilterChip(
+                                        modifier = modifier.padding(horizontal = 5.dp),
+                                        selected = selectedMoods.contains(mood),
+                                        colors = FilterChipDefaults.filterChipColors(
+                                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                        ),
+                                        onClick = {
+                                            if (selectedMoods.contains(mood)) {
+                                                selectedMoods.remove(mood)
+                                            } else {
+                                                selectedMoods.add(mood)
+                                            }
+                                        },
+                                        label = { Text(text = mood) }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -387,6 +421,11 @@ fun StartNewStory(
             })
         }
     }
+}
+
+@Composable
+fun TextToSpeech(text: String) {
+    //TODO
 }
 
 @Composable

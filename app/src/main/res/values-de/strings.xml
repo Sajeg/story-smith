@@ -31,4 +31,9 @@
     <string name="countryside">Land</string>
     <string name="sea">Meer</string>
     <string name="where_should_the_story_take_place">Wo soll die Geschichte spielen?</string>
+    <string name="happy">Fröhlich</string>
+    <string name="dark">Düster</string>
+    <string name="thrilling">Spannend</string>
+    <string name="funny">Lustig</string>
+    <string name="what_is_the_mood_of_the_story">Wie ist die Stimmung der Geschichte?</string>
 </resources>
