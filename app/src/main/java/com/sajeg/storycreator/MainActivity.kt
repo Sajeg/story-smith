@@ -1,6 +1,10 @@
 package com.sajeg.storycreator
 
 import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -46,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -66,6 +71,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationCompat
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -98,6 +104,11 @@ private fun Main(modifier: Modifier = Modifier) {
     val coroutineScope = rememberCoroutineScope()
     var ttsFinished by remember { mutableStateOf(false) }
 
+    LaunchedEffect(Unit) {
+        createNotificationChannel(context)
+    }
+
+
     Column(
         verticalArrangement = Arrangement.Bottom,
         modifier = modifier
@@ -116,6 +127,7 @@ private fun Main(modifier: Modifier = Modifier) {
                 }
             )
         } else if (history.size == 0) {
+            sendNotification(context)
             LazyColumn(
                 modifier = modifier.weight(1f),
                 verticalArrangement = Arrangement.Top,
@@ -460,7 +472,7 @@ fun StartNewStory(
 }
 
 
-fun initTextToSpeech(context: android.content.Context): TextToSpeech {
+fun initTextToSpeech(context: Context): TextToSpeech {
     val tts = TextToSpeech(context) { status ->
         if (status != TextToSpeech.SUCCESS) {
             Log.e("StorySmithTTS", "Error Initializing TTS engine")
@@ -469,7 +481,7 @@ fun initTextToSpeech(context: android.content.Context): TextToSpeech {
     return tts
 }
 
-fun listenToUserInput(context: android.content.Context) {
+fun listenToUserInput(context: Context) {
     Log.d("StorySmithSTT", "Start Listing")
     val stt = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
     val listener = StoryActionRecognitionListener()
@@ -481,6 +493,26 @@ fun listenToUserInput(context: android.content.Context) {
     stt.startListening(intent)
 }
 
+fun createNotificationChannel(context: Context){
+    // Create the NotificationChannel.
+    val name = "Conversation"
+    val importance = NotificationManager.IMPORTANCE_MIN
+    val nChannel = NotificationChannel("conversation", name, importance)
+    nChannel.setShowBadge(false)
+    // Register the channel with the system. You can't change the importance
+    // or other notification behaviors after this.
+    val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.createNotificationChannel(nChannel)
+}
+
+fun sendNotification(context: Context){
+    val builder = NotificationCompat.Builder(context, "conversation")
+        .setSmallIcon(R.drawable.ic_launcher_monochrome)
+        .setContentTitle("Conversation ongoing")
+        .setContentText("You have a new conversation ongoing")
+    val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+    notificationManager.notify(1, builder.build())
+}
 
 @Composable
 fun TextList(
