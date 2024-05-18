@@ -37,7 +37,7 @@ private val generativeModel = GenerativeModel(
 )
 
 var chat = generativeModel.startChat()
-val locale  = Locale.current.language
+val locale  = Locale.current
 var storyTheme: String = ""
 
 
@@ -48,10 +48,10 @@ fun initStoryTelling(theme: String, responseFromModel: (response: MutableList<St
            val processedAnswers = mutableListOf<String>()
            for (i in 0..2) {
                Log.d("ResponseViewModel", "Theme: $storyTheme")
-               Log.d("ResponseViewModel", "Locale: $locale")
+               Log.d("ResponseViewModel", "Locale: ${locale.language}")
                val answer: String? = generativeModel.startChat().sendMessage(
                    "Start the story with the following places and theme: $storyTheme " +
-                           "and with the following language: $locale")
+                           "and with the following language: ${locale.language}")
                    .candidates[0].content.parts[0].asTextOrNull()
                Log.d("ResponseViewModel", "Response content: $answer")
                if (answer != null) {
@@ -71,7 +71,7 @@ fun addSelectedBeginning (beginning: String) {
         history = listOf(
             content(role = "user") { text(
                 "Start the story with the following places and theme: $storyTheme " +
-                    "and with the following language: $locale") },
+                    "and with the following language: ${locale.language}") },
             content(role = "model") { text(beginning) }
         )
     )

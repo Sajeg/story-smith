@@ -2,10 +2,7 @@ package com.sajeg.storycreator
 
 import android.annotation.SuppressLint
 import android.app.Activity
-import android.app.NotificationChannel
-import android.app.NotificationManager
 import android.content.Context
-import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.os.Bundle
 import android.speech.RecognizerIntent
@@ -53,7 +50,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,10 +68,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.app.NotificationCompat
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
-import java.util.Locale
 
 val history = mutableStateListOf<ChatHistory>()
 
@@ -111,9 +105,6 @@ private fun Main() {
         MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.tertiary
     )
-    LaunchedEffect(Unit) {
-        createNotificationChannel(context)
-    }
 
     Scaffold(
         topBar = {
@@ -134,7 +125,7 @@ private fun Main() {
                         content = {
                             Icon(
                                 imageVector = Icons.Outlined.Menu,
-                                contentDescription = "Open Menu",
+                                contentDescription = stringResource(R.string.open_menu),
                                 tint = MaterialTheme.colorScheme.onSurface
                             )
                         }
@@ -144,21 +135,25 @@ private fun Main() {
                     if (history.size != 0) {
                         IconButton(
                             onClick = {
-                                readAloud = !readAloud; if (!readAloud) {
-                                tts.stop(); history[history.lastIndex].wasReadAloud = false
-                            }
+                                if (readAloud) {
+                                    readAloud = false
+                                    tts.stop()
+                                    history[history.lastIndex].wasReadAloud = false
+                                } else {
+                                    readAloud = true
+                                }
                             },
                             content = {
                                 if (readAloud) {
                                     Icon(
                                         painter = painterResource(id = R.drawable.headset_off),
-                                        contentDescription = "Deactivate conversation",
+                                        contentDescription = stringResource(R.string.deactivate_conversation),
                                         tint = MaterialTheme.colorScheme.onSurface
                                     )
                                 } else {
                                     Icon(
                                         painter = painterResource(id = R.drawable.headset),
-                                        contentDescription = "Activate conversation",
+                                        contentDescription = stringResource(R.string.activate_conversation),
                                         tint = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
@@ -189,9 +184,6 @@ private fun Main() {
                     }
                 )
             } else if (history.size == 0) {
-                if (readAloud) {
-                    sendNotification(context)
-                }
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.Top,
@@ -228,7 +220,6 @@ private fun Main() {
                     if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
                         ttsFinished = false
                         lastElement.wasReadAloud = true
-                        tts.setLanguage(Locale.GERMANY)
                         tts.speak(
                             lastElement.content,
                             TextToSpeech.QUEUE_FLUSH,
@@ -482,28 +473,10 @@ fun listenToUserInput(context: Context) {
         RecognizerIntent.EXTRA_LANGUAGE_MODEL,
         RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
     )
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE")
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.language + "-" + locale.region)
 
     stt.setRecognitionListener(listener)
     stt.startListening(intent)
-}
-
-fun createNotificationChannel(context: Context) {
-    val name = context.getString(R.string.conversation)
-    val importance = NotificationManager.IMPORTANCE_MIN
-    val nChannel = NotificationChannel("conversation", name, importance)
-    nChannel.setShowBadge(false)
-    val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-    notificationManager.createNotificationChannel(nChannel)
-}
-
-fun sendNotification(context: Context) {
-    val builder = NotificationCompat.Builder(context, "conversation")
-        .setSmallIcon(R.drawable.ic_launcher_monochrome)
-        .setContentTitle("Conversation ongoing")
-        .setContentText("You have a new conversation ongoing")
-    val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
-    notificationManager.notify(1, builder.build())
 }
 
 @Composable

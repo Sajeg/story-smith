@@ -29,8 +29,10 @@
     <string name="countryside">Land</string>
     <string name="sea">Meer</string>
     <string name="where_should_the_story_take_place">Ort</string>
-    <string name="start_conversation">Beginne Konversation</string>
     <string name="conversation">Konversation</string>
     <string name="beginnings">Wähle Anfang aus</string>
     <string name="fairyland">Märchenland</string>
+    <string name="open_menu">Öffne Menü</string>
+    <string name="deactivate_conversation">Deaktiviere Konversation</string>
+    <string name="activate_conversation">Aktiviere Konversation</string>
 </resources>
