@@ -27,6 +27,7 @@ private val generativeModel = GenerativeModel(
            Don't use the Asterisk Symbol or Brackets at any time. Remember to always use the present tense.
            At the end of each part specify 3 Suggestions like this:
             { Suggestion1; Suggestion2; Suggestion3 } and always separate them with a semicolon.
+           In the first Message think of a short, creative title and mark the title with % like this: %title%.
                    """))),
     safetySettings = listOf(
         SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.NONE),
@@ -49,7 +50,7 @@ fun initStoryTelling(theme: String, responseFromModel: (response: MutableList<St
                Log.d("ResponseViewModel", "Theme: $storyTheme")
                Log.d("ResponseViewModel", "Locale: $locale")
                val answer: String? = generativeModel.startChat().sendMessage(
-                   "Start the story with the following theme: $storyTheme " +
+                   "Start the story with the following places and theme: $storyTheme " +
                            "and with the following language: $locale")
                    .candidates[0].content.parts[0].asTextOrNull()
                Log.d("ResponseViewModel", "Response content: $answer")
@@ -69,8 +70,8 @@ fun addSelectedBeginning (beginning: String) {
     chat = generativeModel.startChat(
         history = listOf(
             content(role = "user") { text(
-                "Start the story with the following theme: $storyTheme " +
-                    "and with the following locale: $locale") },
+                "Start the story with the following places and theme: $storyTheme " +
+                    "and with the following language: $locale") },
             content(role = "model") { text(beginning) }
         )
     )

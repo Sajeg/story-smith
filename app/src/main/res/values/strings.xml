@@ -19,8 +19,6 @@
     <string name="vikings">Vikings</string>
     <string name="slimes">Slimes</string>
     <string name="what_should_the_story_be_about">What should the Story be about?</string>
-    <string name="let_s_create_a_new_story">Let\'s create a new Story!</string>
-    <string name="hello">Hello, %1$s</string>
     <string name="dinosaurs">Dinosaurs</string>
     <string name="which_beginning_do_you_prefer">Which beginning do you prefer?</string>
     <string name="cyberpunk">Cyberpunk</string>
@@ -30,9 +28,8 @@
     <string name="countryside">Countryside</string>
     <string name="sea">Sea</string>
     <string name="where_should_the_story_take_place">Where should the story take place?</string>
-    <string name="happy">happy</string>
-    <string name="dark">dark</string>
-    <string name="thrilling">thrilling</string>
-    <string name="funny">funny</string>
-    <string name="what_is_the_mood_of_the_story">What is the mood of the story?</string>
+    <string name="start_conversation">Start Conversation</string>
+    <string name="conversation">Conversation</string>
+    <string name="beginnings">Select beginning</string>
+    <string name="fairyland">Fairyland</string>
 </resources>

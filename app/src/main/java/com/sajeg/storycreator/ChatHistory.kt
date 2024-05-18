@@ -3,6 +3,7 @@ package com.sajeg.storycreator
 import android.util.Log
 
 data class ChatHistory(
+    val title: String,
     var role: String,
     val content: String,
     var wasReadAloud: Boolean = false,

@@ -40,13 +40,14 @@ class StoryActionRecognitionListener : RecognitionListener {
             Log.d("RecognitionListener", speechOutput)
 
 
-            history.add(ChatHistory("Sajeg", speechOutput))
+            history.add(ChatHistory(history[history.lastIndex].title,"Sajeg", speechOutput))
             action(speechOutput, responseFromModel = { response: String, error: Boolean ->
                 if (!error) {
                     val parts = response.split("{", "}")
                     val suggestions = parts[1].split(";").toTypedArray()
                     history.add(
                         ChatHistory(
+                            title = history[history.lastIndex].title,
                             role = "Gemini",
                             content = parts[0].trimEnd(),
                         )
@@ -55,6 +56,7 @@ class StoryActionRecognitionListener : RecognitionListener {
                 } else {
                     history.add(
                         ChatHistory(
+                            title = "Error",
                             role = "Gemini",
                             content = "A error occurred: $response",
                             endOfChat = true

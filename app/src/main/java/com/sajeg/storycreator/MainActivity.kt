@@ -1,5 +1,6 @@
 package com.sajeg.storycreator
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -15,35 +16,37 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -51,21 +54,19 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -77,6 +78,7 @@ import kotlinx.coroutines.launch
 import java.util.Locale
 
 val history = mutableStateListOf<ChatHistory>()
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -84,10 +86,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             StoryCreatorTheme {
                 Surface(Modifier.fillMaxSize()) {
-                    Main(
-                        modifier = Modifier
-                            .safeDrawingPadding()
-                    )
+                    Main()
                 }
             }
         }
@@ -95,349 +94,339 @@ class MainActivity : ComponentActivity() {
 }
 
 
+@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Main(modifier: Modifier = Modifier) {
+private fun Main() {
     val context = LocalContext.current
     val beginnings = remember { mutableStateListOf<ChatHistory>() }
     val tts = remember { initTextToSpeech(context) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var ttsFinished by remember { mutableStateOf(false) }
-
+    var title by remember { mutableStateOf("Story Smith") }
+    var readAloud by remember { mutableStateOf(false) }
+    val gradientColors = listOf(
+        MaterialTheme.colorScheme.primary,
+        MaterialTheme.colorScheme.secondary,
+        MaterialTheme.colorScheme.tertiary
+    )
     LaunchedEffect(Unit) {
         createNotificationChannel(context)
     }
 
-
-    Column(
-        verticalArrangement = Arrangement.Bottom,
-        modifier = modifier
-            .fillMaxHeight()
-    ) {
-        if (history.size == 0 && beginnings.size == 0) {
-            StartNewStory(
-                onProcessedBeginning = {
-                    for (card in it) {
-                        if (card.endOfChat) {
-                            history.add(card)
-                        } else {
-                            beginnings.add(card)
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = title,
+                        textAlign = TextAlign.Center,
+                        style = TextStyle(
+                            brush = Brush.linearGradient(colors = gradientColors),
+                            fontSize = 24.sp
+                        )
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = { /*TODO*/ },
+                        content = {
+                            Icon(
+                                imageVector = Icons.Outlined.Menu,
+                                contentDescription = "Open Menu",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
                         }
+                    )
+                },
+                actions = {
+                    if (history.size != 0) {
+                        IconButton(
+                            onClick = {
+                                readAloud = !readAloud; if (!readAloud) {
+                                tts.stop(); history[history.lastIndex].wasReadAloud = false
+                            }
+                            },
+                            content = {
+                                if (readAloud) {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.headset_off),
+                                        contentDescription = "Deactivate conversation",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                } else {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.headset),
+                                        contentDescription = "Activate conversation",
+                                        tint = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        )
                     }
                 }
             )
-        } else if (history.size == 0) {
-            sendNotification(context)
-            LazyColumn(
-                modifier = modifier.weight(1f),
-                verticalArrangement = Arrangement.Top,
-                state = listState,
-                userScrollEnabled = true
-            ) {
-                item {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp),
-                        text = stringResource(R.string.which_beginning_do_you_prefer),
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                    )
+        }
+    ) { innerPadding ->
+        val contentModifier = Modifier
+            .padding(innerPadding)
+            .consumeWindowInsets(innerPadding)
+
+        Column(
+            modifier = contentModifier
+        ) {
+            if (history.size == 0 && beginnings.size == 0) {
+                StartNewStory(
+                    onProcessedBeginning = {
+                        for (card in it) {
+                            if (card.endOfChat) {
+                                history.add(card)
+                            } else {
+                                beginnings.add(card)
+                            }
+                        }
+                    }
+                )
+            } else if (history.size == 0) {
+                if (readAloud) {
+                    sendNotification(context)
                 }
-                for (element in beginnings) {
-                    item {
-                        TextList(element = element, onCardClick = {
-                            history.add(it)
-                            addSelectedBeginning(it.content)
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Top,
+                    state = listState,
+                    userScrollEnabled = true
+                ) {
+                    title = context.getString(R.string.beginnings)
+                    for (element in beginnings) {
+                        item {
+                            TextList(element = element, onCardClick = {
+                                history.add(it)
+                                addSelectedBeginning(it.content)
+                            })
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.Bottom,
+                    state = listState,
+                    userScrollEnabled = true
+                ) {
+                    title = history[0].title
+                    for (element in history) {
+                        item {
+                            TextList(element = element)
+                        }
+                    }
+                    coroutineScope.launch {
+                        listState.animateScrollToItem(index = history.size)
+                    }
+                    val lastElement = history[history.lastIndex]
+                    if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
+                        ttsFinished = false
+                        lastElement.wasReadAloud = true
+                        tts.setLanguage(Locale.GERMANY)
+                        tts.speak(
+                            lastElement.content,
+                            TextToSpeech.QUEUE_FLUSH,
+                            null,
+                            "MODEL_MESSAGE"
+                        )
+                        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+                            override fun onDone(utteranceId: String) {
+                                ttsFinished = true
+                                Log.d("StorySmithTTS", "Finished")
+                            }
+
+                            @Deprecated("Deprecated in Java")
+                            override fun onError(utteranceId: String?) {
+                            }
+
+                            override fun onStart(utteranceId: String) {
+                            }
                         })
                     }
-                }
-            }
-        } else {
-            LazyColumn(
-                modifier = modifier.weight(1f),
-                verticalArrangement = Arrangement.Bottom,
-                state = listState,
-                userScrollEnabled = true
-            ) {
-                for (element in history) {
-                    item {
-                        TextList(element = element)
+                    if (ttsFinished and readAloud) {
+                        ttsFinished = false
+                        listenToUserInput(context)
                     }
                 }
-                coroutineScope.launch {
-                    listState.animateScrollToItem(index = history.size)
-                }
-                val lastElement = history[history.lastIndex]
-                if (lastElement.isModel() and !lastElement.wasReadAloud) {
-                    ttsFinished = false
-                    lastElement.wasReadAloud = true
-                    tts.setLanguage(Locale.GERMANY)
-                    tts.speak(lastElement.content, TextToSpeech.QUEUE_FLUSH, null, "MODEL_MESSAGE")
-                    tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                        override fun onDone(utteranceId: String) {
-                            ttsFinished = true
-                            Log.d("StorySmithTTS", "Finished")
-                        }
-
-                        @Deprecated("Deprecated in Java")
-                        override fun onError(utteranceId: String?) {
-                        }
-
-                        override fun onStart(utteranceId: String) {
-                        }
-                    })
-                }
-                if (ttsFinished) {
-                    ttsFinished = false
-                    listenToUserInput(context)
-                }
-            }
-            EnterText(
-                modifier = modifier.weight(0.1f),
-                lastElement = history.lastOrNull(),
-                onTextSubmitted = {
-                    history.add(ChatHistory("Sajeg", it))
-                    action(it, responseFromModel = { response: String, error: Boolean ->
-                        if (!error) {
-                            val parts = response.split("{", "}")
-                            val suggestions = parts[1].split(";").toTypedArray()
-                            history.add(
-                                ChatHistory(
-                                    role = "Gemini",
-                                    content = parts[0].trimEnd(),
+                EnterText(
+                    modifier = Modifier.weight(0.1f),
+                    lastElement = history.lastOrNull(),
+                    onTextSubmitted = {
+                        history.add(ChatHistory(history[history.lastIndex].title, "Sajeg", it))
+                        action(it, responseFromModel = { response: String, error: Boolean ->
+                            if (!error) {
+                                val parts = response.split("{", "}")
+                                val suggestions = parts[1].split(";").toTypedArray()
+                                history.add(
+                                    ChatHistory(
+                                        title = "",
+                                        role = "Gemini",
+                                        content = parts[0].trimEnd(),
+                                    )
                                 )
-                            )
-                            history.lastOrNull()?.addSuggestions(suggestions)
-                        } else {
-                            history.add(
-                                ChatHistory(
-                                    role = "Gemini",
-                                    content = "A error occurred: $response",
-                                    endOfChat = true
+                                history.lastOrNull()?.addSuggestions(suggestions)
+                            } else {
+                                history.add(
+                                    ChatHistory(
+                                        title = "Error",
+                                        role = "Gemini",
+                                        content = "A error occurred: $response",
+                                        endOfChat = true
+                                    )
                                 )
-                            )
-                        }
-                    })
+                            }
+                        })
 
                     }
                 )
             }
         }
     }
+}
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StartNewStory(
     modifier: Modifier = Modifier,
     onProcessedBeginning: (MutableList<ChatHistory>) -> Unit = {}
 ) {
-    val userName = "Sajeg"
-    val element = ChatHistory(role = "Initializer", content = "")
+    val element = ChatHistory(title = "", role = "Initializer", content = "")
     var enableSelection by remember { mutableStateOf(true) }
-    val moods: Array<String> = arrayOf(
-        stringResource(R.string.happy),
-        stringResource(R.string.dark),
-        stringResource(R.string.thrilling),
-        stringResource(R.string.funny)
-    )
     val places: Array<String> = arrayOf(
         stringResource(R.string.cyberpunk),
         stringResource(R.string.space),
         stringResource(R.string.wild_western),
         stringResource(R.string.city),
         stringResource(R.string.countryside),
-        stringResource(R.string.sea)
+        stringResource(R.string.sea),
+        stringResource(R.string.fairyland)
     )
     val ideas: Array<String> = arrayOf(
         stringResource(R.string.outlaws),
         stringResource(R.string.robots),
+        stringResource(R.string.fairies),
         stringResource(R.string.monsters),
         stringResource(R.string.princesses),
         stringResource(R.string.knights),
         stringResource(R.string.unicorns),
         stringResource(R.string.vampires),
         stringResource(R.string.golems),
-        stringResource(R.string.fairies),
+        stringResource(R.string.pirates),
         stringResource(R.string.slimes),
         stringResource(R.string.vikings),
         stringResource(R.string.dragons),
         stringResource(R.string.magicians),
         stringResource(R.string.superheros),
         stringResource(R.string.aliens),
-        stringResource(R.string.pirates)
     )
-    val gradientColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.tertiary
-    )
-    val isKeyboardOpen by keyboardAsState()
     val selectedIdeas = remember { mutableStateListOf<String>() }
     val selectedPlaces = remember { mutableStateListOf<String>() }
-    val selectedMoods = remember { mutableStateListOf<String>() }
     Column(
         modifier = Modifier
             .fillMaxSize()
             .safeDrawingPadding(),
         verticalArrangement = Arrangement.Top
     ) {
-        AnimatedVisibility(!isKeyboardOpen) {
-            Text(
-                modifier = Modifier
-                    .padding(horizontal = 15.dp)
-                    .padding(top = 40.dp),
-                text = stringResource(R.string.hello, userName),
-                style = TextStyle(brush = Brush.linearGradient(colors = gradientColors)),
-                fontSize = 57.sp,
-                lineHeight = 64.sp,
-            )
-            Text(
-                modifier = Modifier
-                    .padding(horizontal = 15.dp)
-                    .padding(bottom = 10.dp, top = 120.dp),
-                text = stringResource(R.string.let_s_create_a_new_story),
-                fontSize = 22.sp,
-                lineHeight = 28.sp,
-            )
-        }
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Bottom
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = 60.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             if (enableSelection) {
                 val flowRowModifiers = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 10.dp)
                     .padding(bottom = 15.dp)
-                    .safeDrawingPadding()
-                item {
-                    Card(
-                        modifier = Modifier.padding(horizontal = 15.dp, vertical = 10.dp),
-                    ) {
-                        Text(
-                            modifier = Modifier
-                                .padding(horizontal = 15.dp)
-                                .padding(top = 15.dp)
-                                .fillMaxWidth(),
-                            text = stringResource(R.string.where_should_the_story_take_place),
-                            fontSize = 22.sp,
-                            lineHeight = 28.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        LazyRow(
-                            modifier = flowRowModifiers,
-                        ) {
-                            for (i in 0..places.lastIndex) {
-                                val place = places[i]
-                                item {
-                                    FilterChip(
-                                        modifier = modifier.padding(horizontal = 5.dp),
-                                        selected = selectedIdeas.contains(place),
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                        ),
-                                        onClick = {
-                                            if (selectedIdeas.contains(place)) {
-                                                selectedIdeas.remove(place)
-                                            } else {
-                                                selectedIdeas.add(place)
-                                            }
-                                        },
-                                        label = { Text(text = place) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                item {
-                    Card(
+                //item {
+                Card(
+                    modifier = Modifier.padding(horizontal = 15.dp, vertical = 50.dp),
+                ) {
+                    Text(
                         modifier = Modifier
                             .padding(horizontal = 15.dp)
-                            .padding(bottom = 10.dp),
-                        colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
+                            .padding(top = 30.dp)
+                            .fillMaxWidth(),
+                        text = stringResource(R.string.where_should_the_story_take_place),
+                        fontSize = 22.sp,
+                        lineHeight = 28.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    FlowRow(
+                        modifier = flowRowModifiers,
+                        Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            modifier = Modifier
-                                .padding(horizontal = 15.dp)
-                                .padding(top = 15.dp)
-                                .fillMaxWidth(),
-                            text = stringResource(R.string.what_should_the_story_be_about),
-                            fontSize = 22.sp,
-                            lineHeight = 28.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        LazyRow(
-                            modifier = flowRowModifiers
-                        ) {
-                            for (i in 0..ideas.lastIndex) {
-                                val idea = ideas[i]
-                                item {
-                                    FilterChip(
-                                        modifier = modifier.padding(horizontal = 5.dp),
-                                        selected = selectedIdeas.contains(idea),
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                        ),
-                                        onClick = {
-                                            if (selectedIdeas.contains(idea)) {
-                                                selectedIdeas.remove(idea)
-                                            } else {
-                                                selectedIdeas.add(idea)
-                                            }
-                                        },
-                                        label = { Text(text = idea) }
-                                    )
-                                }
-                            }
+                        for (i in 0..places.lastIndex) {
+                            val place = places[i]
+                            FilterChip(
+                                modifier = modifier.padding(horizontal = 5.dp),
+                                selected = selectedIdeas.contains(place),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                ),
+                                onClick = {
+                                    if (selectedIdeas.contains(place)) {
+                                        selectedIdeas.remove(place)
+                                    } else {
+                                        selectedIdeas.add(place)
+                                    }
+                                },
+                                label = { Text(text = place) },
+                            )
                         }
                     }
                 }
-                item {
-                    Card(
-                        modifier = Modifier.padding(horizontal = 15.dp)
+                Card(
+                    modifier = Modifier
+                        .padding(horizontal = 15.dp)
+                        .padding(bottom = 50.dp),
+                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
+                ) {
+                    Text(
+                        modifier = Modifier
+                            .padding(horizontal = 15.dp)
+                            .padding(top = 30.dp)
+                            .fillMaxWidth(),
+                        text = stringResource(R.string.what_should_the_story_be_about),
+                        fontSize = 22.sp,
+                        lineHeight = 28.sp,
+                        textAlign = TextAlign.Center
+                    )
+                    FlowRow(
+                        modifier = flowRowModifiers,
+                        Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            modifier = Modifier
-                                .padding(horizontal = 15.dp)
-                                .padding(top = 15.dp)
-                                .fillMaxWidth(),
-                            text = stringResource(R.string.what_is_the_mood_of_the_story),
-                            fontSize = 22.sp,
-                            lineHeight = 28.sp,
-                            textAlign = TextAlign.Center
-                        )
-                        LazyRow(
-                            modifier = flowRowModifiers
-                        ) {
-                            for (i in 0..moods.lastIndex) {
-                                val mood = moods[i]
-                                item {
-                                    FilterChip(
-                                        modifier = modifier.padding(horizontal = 5.dp),
-                                        selected = selectedMoods.contains(mood),
-                                        colors = FilterChipDefaults.filterChipColors(
-                                            selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                            selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                        ),
-                                        onClick = {
-                                            if (selectedMoods.contains(mood)) {
-                                                selectedMoods.remove(mood)
-                                            } else {
-                                                selectedMoods.add(mood)
-                                            }
-                                        },
-                                        label = { Text(text = mood) }
-                                    )
-                                }
-                            }
+                        for (i in 0..ideas.lastIndex) {
+                            val idea = ideas[i]
+                            FilterChip(
+                                modifier = modifier.padding(horizontal = 5.dp),
+                                selected = selectedIdeas.contains(idea),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.tertiary,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiary
+                                ),
+                                onClick = {
+                                    if (selectedIdeas.contains(idea)) {
+                                        selectedIdeas.remove(idea)
+                                    } else {
+                                        selectedIdeas.add(idea)
+                                    }
+                                },
+                                label = { Text(text = idea) }
+                            )
                         }
                     }
                 }
             }
         }
-        if(enableSelection) {
+        if (enableSelection) {
             EnterText(lastElement = element, onTextSubmitted = {
                 enableSelection = false
                 initStoryTelling(
@@ -446,12 +435,14 @@ fun StartNewStory(
                         if (!error) {
                             val beginning: MutableList<ChatHistory> = mutableListOf()
                             for (candidate in response) {
-                                val parts = candidate.split("{", "}")
+                                val title = candidate.split("%", "%")
+                                val parts = title[2].split("{", "}")
                                 val suggestions = parts[1].split(";").toTypedArray()
                                 beginning.add(
                                     ChatHistory(
+                                        title = title[1],
                                         role = "Gemini",
-                                        content = parts[0].trimEnd(),
+                                        content = parts[0].trim(),
                                     )
                                 )
                                 beginning[beginning.lastIndex].addSuggestions(suggestions)
@@ -459,6 +450,7 @@ fun StartNewStory(
                             onProcessedBeginning(beginning)
                         } else {
                             val beginning = ChatHistory(
+                                title = "Error",
                                 role = "Gemini",
                                 content = "An error occurred: $response",
                                 endOfChat = true
@@ -486,26 +478,26 @@ fun listenToUserInput(context: Context) {
     val stt = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
     val listener = StoryActionRecognitionListener()
     val intent = Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE)
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+    intent.putExtra(
+        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+    )
     intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "de-DE")
 
     stt.setRecognitionListener(listener)
     stt.startListening(intent)
 }
 
-fun createNotificationChannel(context: Context){
-    // Create the NotificationChannel.
-    val name = "Conversation"
+fun createNotificationChannel(context: Context) {
+    val name = context.getString(R.string.conversation)
     val importance = NotificationManager.IMPORTANCE_MIN
     val nChannel = NotificationChannel("conversation", name, importance)
     nChannel.setShowBadge(false)
-    // Register the channel with the system. You can't change the importance
-    // or other notification behaviors after this.
     val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
     notificationManager.createNotificationChannel(nChannel)
 }
 
-fun sendNotification(context: Context){
+fun sendNotification(context: Context) {
     val builder = NotificationCompat.Builder(context, "conversation")
         .setSmallIcon(R.drawable.ic_launcher_monochrome)
         .setContentTitle("Conversation ongoing")
@@ -588,7 +580,6 @@ fun EnterText(
             modifier = Modifier
                 .padding(horizontal = 10.dp)
                 .padding(top = 5.dp)
-                .safeDrawingPadding()
         ) {
             if (lastElement != null && lastElement.hasSuggestions()) {
                 for (idea in lastElement.getSuggestions()) {
@@ -628,7 +619,7 @@ fun EnterText(
                         Text(stringResource(R.string.what_do_you_want_to_do))
                     }
                 },
-                shape = CircleShape,
+                shape = MaterialTheme.shapes.extraLarge,
                 singleLine = true,
                 enabled = enableInput,
                 keyboardActions = KeyboardActions(onDone = {
@@ -670,16 +661,10 @@ fun EnterText(
                         modifier = Modifier.size(34.dp),
                     )
                 },
-                modifier = Modifier.size(56.dp),
+                modifier = Modifier.size(TextFieldDefaults.MinHeight),
 
                 )
 
         }
     }
-}
-
-@Composable
-fun keyboardAsState(): State<Boolean> {
-    val isImeVisible = WindowInsets.ime.getBottom(LocalDensity.current) > 0
-    return rememberUpdatedState(isImeVisible)
 }
