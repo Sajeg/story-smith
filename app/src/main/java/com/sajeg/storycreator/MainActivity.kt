@@ -420,13 +420,13 @@ fun StartNewStory(
         if (enableSelection) {
             EnterText(lastElement = element, onTextSubmitted = {
                 enableSelection = false
-                initStoryTelling(
-                    theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
-                    responseFromModel = { response: MutableList<String>, error: Boolean ->
-                        if (!error) {
-                            val beginning: MutableList<ChatHistory> = mutableListOf()
-                            for (candidate in response) {
-                                val title = candidate.split("%", "%")
+                for (i in 0..2) {
+                    initStoryTelling(
+                        theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
+                        responseFromModel = { response: String, error: Boolean ->
+                            if (!error) {
+                                val beginning: MutableList<ChatHistory> = mutableListOf()
+                                val title = response.split("%", "%")
                                 val parts = title[2].split("{", "}")
                                 val suggestions = parts[1].split(";").toTypedArray()
                                 beginning.add(
@@ -437,18 +437,19 @@ fun StartNewStory(
                                     )
                                 )
                                 beginning[beginning.lastIndex].addSuggestions(suggestions)
+
+                                onProcessedBeginning(beginning)
+                            } else {
+                                val beginning = ChatHistory(
+                                    title = "Error",
+                                    role = "Gemini",
+                                    content = "An error occurred: $response",
+                                    endOfChat = true
+                                )
+                                onProcessedBeginning(mutableListOf(beginning))
                             }
-                            onProcessedBeginning(beginning)
-                        } else {
-                            val beginning = ChatHistory(
-                                title = "Error",
-                                role = "Gemini",
-                                content = "An error occurred: $response",
-                                endOfChat = true
-                            )
-                            onProcessedBeginning(mutableListOf(beginning))
-                        }
-                    })
+                        })
+                }
             })
         }
     }

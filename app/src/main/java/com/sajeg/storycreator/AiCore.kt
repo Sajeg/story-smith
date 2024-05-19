@@ -18,7 +18,10 @@ import kotlinx.coroutines.launch
 private val generativeModel = GenerativeModel(
     modelName = "gemini-1.5-flash-latest",
     apiKey = BuildConfig.geminiApiKey,
-    systemInstruction = Content(parts = listOf(TextPart("""
+    systemInstruction = Content(
+        parts = listOf(
+            TextPart(
+                """
            Create a story, but with a twist: the reader is also the protagonist, 
            that means that the reader needs to say what he wants to do.
            In short: You create a small snippet of a long Story and then the reader can influence what is happening.
@@ -28,7 +31,10 @@ private val generativeModel = GenerativeModel(
            At the end of each part specify 3 Suggestions like this:
             { Suggestion1; Suggestion2; Suggestion3 } and always separate them with a semicolon.
            In the first Message think of a short, creative title and mark the title with % like this: %title%.
-                   """))),
+                   """
+            )
+        )
+    ),
     safetySettings = listOf(
         SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.NONE),
         SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE),
@@ -37,41 +43,43 @@ private val generativeModel = GenerativeModel(
 )
 
 var chat = generativeModel.startChat()
-val locale  = Locale.current
+val locale = Locale.current
 var storyTheme: String = ""
 
 
-fun initStoryTelling(theme: String, responseFromModel: (response: MutableList<String>, isError: Boolean) -> Unit) {
-   CoroutineScope(Dispatchers.IO).launch {
-       try {
-           storyTheme = theme
-           val processedAnswers = mutableListOf<String>()
-           for (i in 0..2) {
-               Log.d("ResponseViewModel", "Theme: $storyTheme")
-               Log.d("ResponseViewModel", "Locale: ${locale.language}")
-               val answer: String? = generativeModel.startChat().sendMessage(
-                   "Start the story with the following places and theme: $storyTheme " +
-                           "and with the following language: ${locale.language}")
-                   .candidates[0].content.parts[0].asTextOrNull()
-               Log.d("ResponseViewModel", "Response content: $answer")
-               if (answer != null) {
-                   processedAnswers.add(answer)
-               }
-           }
-           responseFromModel(processedAnswers, false)
-       } catch (e: Exception) {
-           Log.e("ChatModelInit", "Error initializing chat: $e")
-           responseFromModel(mutableListOf(e.toString()), true)
-       }
-   }
+fun initStoryTelling(
+    theme: String,
+    responseFromModel: (response: String, isError: Boolean) -> Unit
+) {
+    CoroutineScope(Dispatchers.IO).launch {
+        try {
+            storyTheme = theme
+
+            Log.d("ResponseViewModel", "Theme: $storyTheme")
+            Log.d("ResponseViewModel", "Locale: ${locale.language}")
+            val answer: String? = generativeModel.startChat().sendMessage(
+                "Start the story with the following places and theme: $storyTheme " +
+                        "and with the following language: ${locale.language}"
+            )
+                .candidates[0].content.parts[0].asTextOrNull()
+            Log.d("ResponseViewModel", "Response content: $answer")
+            responseFromModel(answer.toString(), false)
+        } catch (e: Exception) {
+            Log.e("ChatModelInit", "Error initializing chat: $e")
+            responseFromModel(e.toString(), true)
+        }
+    }
 }
 
-fun addSelectedBeginning (beginning: String) {
+fun addSelectedBeginning(beginning: String) {
     chat = generativeModel.startChat(
         history = listOf(
-            content(role = "user") { text(
-                "Start the story with the following places and theme: $storyTheme " +
-                    "and with the following language: ${locale.language}") },
+            content(role = "user") {
+                text(
+                    "Start the story with the following places and theme: $storyTheme " +
+                            "and with the following language: ${locale.language}"
+                )
+            },
             content(role = "model") { text(beginning) }
         )
     )
@@ -79,7 +87,7 @@ fun addSelectedBeginning (beginning: String) {
 
 fun action(prompt: String, responseFromModel: (response: String, isError: Boolean) -> Unit) {
     CoroutineScope(Dispatchers.IO).launch {
-        val answer:String?
+        val answer: String?
         try {
             answer = chat.sendMessage(prompt).candidates[0].content.parts[0].asTextOrNull()
             Log.d("ResponseViewModel", "Response content: $answer")
