@@ -121,7 +121,7 @@ private fun Main() {
                 navigationIcon = {
                     if (history.size != 0) {
                         IconButton(
-                            onClick = { ShareChat.exportChat(history) },
+                            onClick = { ShareChat.exportChat(context, history) },
                             content = {
                                 Icon(
                                     imageVector = Icons.Outlined.Share,
