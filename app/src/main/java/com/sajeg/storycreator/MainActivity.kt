@@ -30,7 +30,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.Menu
+import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -119,16 +119,18 @@ private fun Main() {
                     )
                 },
                 navigationIcon = {
-                    IconButton(
-                        onClick = { /*TODO*/ },
-                        content = {
-                            Icon(
-                                imageVector = Icons.Outlined.Menu,
-                                contentDescription = stringResource(R.string.open_menu),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                    )
+                    if (history.size != 0) {
+                        IconButton(
+                            onClick = { ShareChat.exportChat(history) },
+                            content = {
+                                Icon(
+                                    imageVector = Icons.Outlined.Share,
+                                    contentDescription = stringResource(R.string.open_menu),
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        )
+                    }
                 },
                 actions = {
                     if (history.size != 0) {
