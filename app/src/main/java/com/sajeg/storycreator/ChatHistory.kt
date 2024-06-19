@@ -1,6 +1,8 @@
 package com.sajeg.storycreator
 
 import android.util.Log
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 
 data class ChatHistory(
     val title: String,
@@ -8,38 +10,53 @@ data class ChatHistory(
     val content: String,
     var wasReadAloud: Boolean = false,
     val endOfChat: Boolean = false,
-    private var suggestions: Array<String> = arrayOf("","","")
+    private var suggestions: Array<String> = arrayOf("", "", "")
 ) {
 
-    fun isModel(): Boolean{
+    fun isModel(): Boolean {
         return role == "Gemini"
     }
-    fun isInitializer(): Boolean{
+
+    fun isInitializer(): Boolean {
         //Log.d("ChatHistory", (role == "Gemini").toString())
         return role == "Initializer"
     }
 
-    fun addSuggestions(input: Array<String>){
-        val formattedSuggestions = Array(input.size) { i -> input[i]
-                .replace("Vorschlag${(i+1)}:", "")
-                .replace("Suggestion${(i+1)}:", "")
-                .trim() }
+    fun addSuggestions(input: Array<String>) {
+        val formattedSuggestions = Array(input.size) { i ->
+            input[i]
+                .replace("Vorschlag${(i + 1)}:", "")
+                .replace("Suggestion${(i + 1)}:", "")
+                .trim()
+        }
         Log.d("ChatHistory", "Added suggestions: ${formattedSuggestions[0]}")
         suggestions = formattedSuggestions
     }
 
-    fun getSuggestions(): Array<String>{
+    fun getSuggestions(): Array<String> {
         return suggestions
     }
 
     fun hasSuggestions(): Boolean {
         var emptySuggestion = 0
         for (item in suggestions) {
-            if(item == ""){
+            if (item == "") {
                 emptySuggestion++
             }
         }
         return emptySuggestion == 0
+    }
+
+    fun toJsonElement(): JsonElement {
+        val data = """{  
+            "title": "${title.replace('"', '\"')}",
+            "role": "$role",
+            "content": "$content",
+            "wasReadAloud": "$wasReadAloud",
+            "endOfChat": "$endOfChat"
+            }"""
+
+        return Json.parseToJsonElement(data)
     }
 
     override fun equals(other: Any?): Boolean {
