@@ -6,6 +6,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
+import androidx.core.net.toFile
 import kotlinx.serialization.json.JsonElement
 import java.io.File
 import java.io.FileOutputStream
@@ -13,8 +14,8 @@ import java.io.FileOutputStream
 
 object ShareChat {
 
-    fun importChat() {
-
+    fun importChat(uri: Uri) {
+        var file = uri.toFile()
     }
 
     fun exportChat(context: Context, data: MutableList<ChatHistory>) {

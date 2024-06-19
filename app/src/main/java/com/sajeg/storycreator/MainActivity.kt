@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -68,6 +69,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toFile
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 
@@ -82,6 +84,22 @@ class MainActivity : ComponentActivity() {
                 Surface(Modifier.fillMaxSize()) {
                     Main()
                 }
+            }
+        }
+        if (intent.action == Intent.ACTION_VIEW) {
+            val uri: Uri = intent.data ?: return // Check for valid URI
+
+            // Process the file
+            try {
+                val fileContent = uri.toFile().reader().read()
+
+                // Process parsed data
+                Log.d("MainActivity", "JSON data: $fileContent")
+                // Update UI or do other actions here
+
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Error reading or parsing JSON: ${e.message}")
+                // Handle error appropriately
             }
         }
     }
