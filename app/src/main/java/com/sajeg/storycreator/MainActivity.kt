@@ -93,7 +93,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Main() {
     val context = LocalContext.current
-    val beginnings = remember { mutableStateListOf<ChatHistory>() }
     val tts = remember { initTextToSpeech(context) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
@@ -171,35 +170,12 @@ private fun Main() {
         Column(
             modifier = contentModifier
         ) {
-            if (history.size == 0 && beginnings.size == 0) {
+            if (history.size == 0) {
                 StartNewStory(
                     onProcessedBeginning = {
-                        for (card in it) {
-                            if (card.endOfChat) {
-                                history.add(card)
-                            } else {
-                                beginnings.add(card)
-                            }
-                        }
+                        history.add(it)
                     }
                 )
-            } else if (history.size == 0) {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Top,
-                    state = listState,
-                    userScrollEnabled = true
-                ) {
-                    title = context.getString(R.string.beginnings)
-                    for (element in beginnings) {
-                        item {
-                            TextList(element = element, onCardClick = {
-                                history.add(it)
-                                addSelectedBeginning(it.content)
-                            })
-                        }
-                    }
-                }
             } else {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -285,7 +261,7 @@ private fun Main() {
 @Composable
 fun StartNewStory(
     modifier: Modifier = Modifier,
-    onProcessedBeginning: (MutableList<ChatHistory>) -> Unit = {}
+    onProcessedBeginning: (ChatHistory) -> Unit = {}
 ) {
     val element = ChatHistory(title = "", role = "Initializer", content = "")
     var enableSelection by remember { mutableStateOf(true) }
@@ -420,36 +396,33 @@ fun StartNewStory(
         if (enableSelection) {
             EnterText(lastElement = element, onTextSubmitted = {
                 enableSelection = false
-                for (i in 0..2) {
-                    initStoryTelling(
-                        theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
-                        responseFromModel = { response: String, error: Boolean ->
-                            if (!error) {
-                                val beginning: MutableList<ChatHistory> = mutableListOf()
-                                val title = response.split("%", "%")
-                                val parts = title[2].split("{", "}")
-                                val suggestions = parts[1].split(";").toTypedArray()
-                                beginning.add(
-                                    ChatHistory(
-                                        title = title[1],
-                                        role = "Gemini",
-                                        content = parts[0].trim(),
-                                    )
-                                )
-                                beginning[beginning.lastIndex].addSuggestions(suggestions)
+                initStoryTelling(
+                    theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
+                    responseFromModel = { response: String, error: Boolean ->
+                        if (!error) {
+                            val beginning: ChatHistory
+                            val title = response.split("%", "%")
+                            val parts = title[2].split("{", "}")
+                            val suggestions = parts[1].split(";").toTypedArray()
+                            beginning = ChatHistory(
+                                title = title[1],
+                                role = "Gemini",
+                                content = parts[0].trim(),
+                            )
 
-                                onProcessedBeginning(beginning)
-                            } else {
-                                val beginning = ChatHistory(
-                                    title = "Error",
-                                    role = "Gemini",
-                                    content = "An error occurred: $response",
-                                    endOfChat = true
-                                )
-                                onProcessedBeginning(mutableListOf(beginning))
-                            }
-                        })
-                }
+                            beginning.addSuggestions(suggestions)
+
+                            onProcessedBeginning(beginning)
+                        } else {
+                            val beginning = ChatHistory(
+                                title = "Error",
+                                role = "Gemini",
+                                content = "An error occurred: $response",
+                                endOfChat = true
+                            )
+                            onProcessedBeginning(beginning)
+                        }
+                    })
             })
         }
     }
