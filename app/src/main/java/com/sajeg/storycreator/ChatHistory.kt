@@ -49,9 +49,9 @@ data class ChatHistory(
 
     fun toJsonElement(): JsonElement {
         val data = """{  
-            "title": "${title.replace('"', '\"')}",
+            "title": "$title",
             "role": "$role",
-            "content": "$content",
+            "content": "${content.replace("\"", "\\\"")}",
             "wasReadAloud": "$wasReadAloud",
             "endOfChat": "$endOfChat"
             }"""

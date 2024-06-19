@@ -14,7 +14,7 @@ import java.io.FileOutputStream
 object ShareChat {
 
     fun importChat() {
-        //ToDo
+
     }
 
     fun exportChat(context: Context, data: MutableList<ChatHistory>) {
@@ -24,7 +24,8 @@ object ShareChat {
         val byteArray = modifiedData.toString().toByteArray()
         Log.d("ExportChat", modifiedData.toString())
         Log.d("ExportChat", modifiedData.toString().toByteArray().toString())
-        //outputStream.close()
+        outputStream.write(byteArray)
+        outputStream.close()
         val uri: Uri =
             FileProvider.getUriForFile(context, "com.sajeg.storycreator.fileprovider", tempFile)
 
