@@ -63,8 +63,9 @@ object ShareChat {
 
     private fun parseFromJson(data: JsonElement): ChatHistory {
         val suggestions = arrayOf("","","")
-        for ((i, suggestion) in suggestions.withIndex()){
-            suggestions[i] = suggestion
+        for ((i, suggestion) in data.jsonObject["suggestions"]!!.jsonArray.withIndex()){
+            Log.d("Suggestions", suggestion.toString())
+            suggestions[i] = suggestion.toString().replace('"', ' ').trim()
         }
         return ChatHistory(
             title = data.jsonObject["title"]!!.jsonPrimitive.content,

@@ -54,7 +54,9 @@ data class ChatHistory(
             "content": "${content.replace("\"", "\\\"")}",
             "wasReadAloud": "$wasReadAloud",
             "endOfChat": "$endOfChat",
-            "suggestions": "$suggestions"
+            "suggestions": [
+                "${suggestions[0]}", "${suggestions[1]}", "${suggestions[2]}"
+            ]
             }"""
 
         return Json.parseToJsonElement(data)
