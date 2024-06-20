@@ -13,10 +13,10 @@ import java.io.FileOutputStream
 
 object ShareChat {
 
-    fun importChat(uri: Uri) {
-        //val file = File(Uri.getPath())
-        //val data = file.readBytes().toString()
-        //Log.d("FileData", data)
+    fun importChat(context: Context, uri: Uri) {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return
+        val byteArray =
+        inputStream.close()
     }
 
     fun exportChat(context: Context, data: MutableList<ChatHistory>) {
