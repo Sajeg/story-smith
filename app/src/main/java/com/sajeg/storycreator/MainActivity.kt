@@ -12,6 +12,7 @@ import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -73,7 +74,7 @@ import androidx.compose.ui.unit.sp
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 
-val history = mutableStateListOf<ChatHistory>()
+var history = mutableStateListOf<ChatHistory>()
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,29 +88,25 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (intent.action == Intent.ACTION_SEND) {
-            Log.d("IntentVariables", "Action: ${intent.action}")
-            Log.d("IntentVariables", "Data: ${intent.data}")
-            Log.d("IntentVariables", "Type: ${intent.type}")
-            Log.d("IntentVariables", "Component: ${intent.component}")
-            Log.d("IntentVariables", "ClipData: ${intent.clipData}")
-            Log.d("IntentVariables", "Extras: ${intent.extras}")
-            Log.d("IntentVariables", "Categories: ${intent.categories}")
-            Log.d("IntentVariables", "Flags: ${intent.flags}")
-            Log.d("IntentVariables", "DataString: ${intent.dataString}")
-            Log.d("IntentVariables", "Scheme: ${intent.scheme}")
-            Log.d("IntentVariables", "Identifier: ${intent.identifier}")
-            Log.d("IntentVariables", "Package: ${intent.`package`}")
-            Log.d("IntentVariables", "Selector: ${intent.selector}")
-            Log.d("IntentVariables", "SourceBounds: ${intent.sourceBounds}")
-
             val uri : Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM)
             }
-            Log.d("IntentVariables", "Uri: $uri")
             if (uri != null) {
-                ShareChat.importChat(this, uri)
+                try {
+                    history = ShareChat.importChat(this, uri)
+                    Toast.makeText(
+                        this, "Story imported",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        this, "Error importing Story",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    Log.e("ImportChat", "Chat import failed with: $e")
+                }
             }
         }
     }
