@@ -73,6 +73,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 var history: History = History("N/A", parts = mutableListOf())
 
@@ -124,7 +125,6 @@ private fun Main() {
     var ttsFinished by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("Story Smith") }
     var readAloud by remember { mutableStateOf(false) }
-    var history by remember { mutableStateOf<History?>(null) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -145,7 +145,7 @@ private fun Main() {
                     )
                 },
                 navigationIcon = {
-                    if (history != null) {
+                    if (history.title != "N/A") {
                         IconButton(
                             onClick = { ShareChat.exportChat(context, history) },
                             content = {
@@ -159,13 +159,13 @@ private fun Main() {
                     }
                 },
                 actions = {
-                    if (history.size != 0) {
+                    if (history.parts.size != 0) {
                         IconButton(
                             onClick = {
                                 if (readAloud) {
                                     readAloud = false
                                     tts.stop()
-                                    history[history.lastIndex].wasReadAloud = false
+                                    history.parts[history.parts.lastIndex].wasReadAloud = false
                                 } else {
                                     readAloud = true
                                 }
@@ -198,10 +198,10 @@ private fun Main() {
         Column(
             modifier = contentModifier
         ) {
-            if (history.size == 0) {
+            if (history.parts.size == 0) {
                 StartNewStory(
                     onProcessedBeginning = {
-                        history.add(it)
+                        history = it
                     }
                 )
             } else {
@@ -211,16 +211,16 @@ private fun Main() {
                     state = listState,
                     userScrollEnabled = true
                 ) {
-                    title = history[0].title
-                    for (element in history) {
+                    title = history.title
+                    for (element in history.parts) {
                         item {
-                            TextList(element = element)
+                            TextList(element = element, isEnded = history.isEnded)
                         }
                     }
                     coroutineScope.launch {
-                        listState.animateScrollToItem(index = history.size)
+                        listState.animateScrollToItem(index = history.parts.size)
                     }
-                    val lastElement = history[history.lastIndex]
+                    val lastElement = history.parts[history.parts.lastIndex]
                     if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
                         ttsFinished = false
                         lastElement.wasReadAloud = true
@@ -251,28 +251,25 @@ private fun Main() {
                 }
                 EnterText(
                     modifier = Modifier.weight(0.1f),
-                    lastElement = history.lastOrNull(),
+                    lastElement = history.parts.lastOrNull(),
                     onTextSubmitted = {
-                        history.add(ChatHistory(history[history.lastIndex].title, "Sajeg", it))
-                        action(it, responseFromModel = { response: String, error: Boolean ->
+                        history.parts.add(StoryPart("Sajeg", it))
+                        AiCore.action(it, responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
                             if (!error) {
-                                val parts = response.split("{", "}")
-                                val suggestions = parts[1].split(";").toTypedArray()
-                                history.add(
-                                    ChatHistory(
-                                        title = "",
+                                history.parts.add(
+                                    StoryPart(
                                         role = "Gemini",
-                                        content = parts[0].trimEnd(),
+                                        content = response!!.getString("story"),
+                                        suggestions = response.getJSONArray("suggestions") as Array<String>
                                     )
                                 )
-                                history.lastOrNull()?.addSuggestions(suggestions)
                             } else {
-                                history.add(
-                                    ChatHistory(
-                                        title = "Error",
+                                history.title = "Error"
+                                history.isEnded = true
+                                history.parts.add(
+                                    StoryPart(
                                         role = "Gemini",
                                         content = "A error occurred: $response",
-                                        endOfChat = true
                                     )
                                 )
                             }
@@ -289,9 +286,9 @@ private fun Main() {
 @Composable
 fun StartNewStory(
     modifier: Modifier = Modifier,
-    onProcessedBeginning: (ChatHistory) -> Unit = {}
+    onProcessedBeginning: (History) -> Unit = {}
 ) {
-    val element = ChatHistory(title = "", role = "Initializer", content = "")
+    val element = StoryPart(role = "Initializer", content = "")
     var enableSelection by remember { mutableStateOf(true) }
     val places: Array<String> = arrayOf(
         stringResource(R.string.cyberpunk),
@@ -424,29 +421,33 @@ fun StartNewStory(
         if (enableSelection) {
             EnterText(lastElement = element, onTextSubmitted = {
                 enableSelection = false
-                initStoryTelling(
+                AiCore.initStoryTelling(
                     theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
-                    responseFromModel = { response: String, error: Boolean ->
+                    responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
                         if (!error) {
-                            val beginning: ChatHistory
-                            val title = response.split("%", "%")
-                            val parts = title[2].split("{", "}")
-                            val suggestions = parts[1].split(";").toTypedArray()
-                            beginning = ChatHistory(
-                                title = title[1],
-                                role = "Gemini",
-                                content = parts[0].trim(),
+                            onProcessedBeginning(
+                                History(
+                                title = response!!.getString("title"),
+                                parts = mutableListOf(
+                                    StoryPart(
+                                        role = "Gemini",
+                                        content = response.getString("story"),
+                                        suggestions = response.getJSONArray("suggestions") as Array<String>
+                                    )
+                                )
                             )
-
-                            beginning.addSuggestions(suggestions)
-
-                            onProcessedBeginning(beginning)
+                            )
                         } else {
-                            val beginning = ChatHistory(
+                            val beginning = History(
                                 title = "Error",
-                                role = "Gemini",
-                                content = "An error occurred: $response",
-                                endOfChat = true
+                                parts = mutableListOf(
+                                    StoryPart(
+                                        role = "Gemini",
+                                        content = "An error occurred: $errorDesc",
+                                        suggestions = arrayOf("","","")
+                                    )
+                                ),
+                                isEnded = true
                             )
                             onProcessedBeginning(beginning)
                         }
@@ -475,7 +476,7 @@ fun listenToUserInput(context: Context) {
         RecognizerIntent.EXTRA_LANGUAGE_MODEL,
         RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
     )
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, locale.language + "-" + locale.region)
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, AiCore.locale.language + "-" + AiCore.locale.region)
 
     stt.setRecognitionListener(listener)
     stt.startListening(intent)
@@ -484,10 +485,11 @@ fun listenToUserInput(context: Context) {
 @Composable
 fun TextList(
     modifier: Modifier = Modifier,
-    element: ChatHistory,
+    element: StoryPart,
+    isEnded: Boolean,
     onCardClick: (beginning: ChatHistory) -> Unit = {}
 ) {
-    val colors: CardColors = if (element.isModel() and element.endOfChat) {
+    val colors: CardColors = if (element.isModel() and isEnded) {
         CardColors(
             containerColor = MaterialTheme.colorScheme.errorContainer,
             contentColor = MaterialTheme.colorScheme.onErrorContainer,
@@ -524,7 +526,7 @@ fun TextList(
 @Composable
 fun EnterText(
     modifier: Modifier = Modifier,
-    lastElement: ChatHistory?,
+    lastElement: StoryPart?,
     onTextSubmitted: (text: String) -> Unit,
 ) {
     var value by remember { mutableStateOf("") }

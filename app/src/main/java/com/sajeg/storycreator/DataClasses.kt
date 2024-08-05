@@ -2,32 +2,34 @@ package com.sajeg.storycreator
 
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
 
 data class History(
-    val title: String,
+    var title: String,
     val parts: MutableList<StoryPart>,
-    val isEnded: Boolean = false
+    var isEnded: Boolean = false
 ) {
     fun toJsonElement(): JsonElement {
-        val parts =
-
-        val data = """{
-            "tile": "$title",
-            "isEnded": "$isEnded",
-            "parts": [
-                "${parts[0]}", "${parts[1]}", "${parts[2]}"
-            ]
-            }"""
-
-        return Json.parseToJsonElement(data)
+        val jsonObject = buildJsonObject {
+            put("title", title)
+            put("isEnded", isEnded)
+            putJsonArray("parts") {
+                for (part in parts) {
+                    add(part.toJsonElement())
+                }
+            }
+        }
+        return jsonObject
     }
 }
 
 data class StoryPart(
     var role: String,
     var content: String,
-    var wasReadAloud: Boolean,
-    var suggestions: Array<String>
+    var wasReadAloud: Boolean = false,
+    var suggestions: Array<String> = arrayOf("","","")
 ) {
     fun isModel(): Boolean {
         return role == "Gemini"

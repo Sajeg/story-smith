@@ -65,7 +65,8 @@ object ShareChat {
             parts.add(StoryPart(
                 wasReadAloud = false,
                 role = message.jsonObject["role"]!!.jsonPrimitive.content,
-                content = message.jsonObject["content"]!!.jsonPrimitive.content
+                content = message.jsonObject["content"]!!.jsonPrimitive.content,
+                suggestions = suggestions
             ))
         }
         return History(

@@ -13,6 +13,7 @@ import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 object AiCore {
     private val generativeModel = GenerativeModel(
@@ -53,7 +54,7 @@ object AiCore {
 
     fun initStoryTelling(
         theme: String,
-        responseFromModel: (response: String, isError: Boolean) -> Unit
+        responseFromModel: (response: JSONObject?, isError: Boolean, errorDesc: String?) -> Unit
     ) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -63,25 +64,27 @@ object AiCore {
                     "Start the story with the following places and theme: $storyTheme " +
                             "and with the following language: ${locale.language}"
                 ).candidates[0].content.parts[0].asTextOrNull()
+                val jsonResponse = JSONObject(answer!!)
                 Log.d("ResponseViewModel", "Response content: $answer")
-                responseFromModel(answer.toString(), false)
+                responseFromModel(jsonResponse, false, null)
             } catch (e: Exception) {
                 Log.e("ChatModelInit", "Error initializing chat: $e")
-                responseFromModel(e.toString(), true)
+                responseFromModel(null, true, e.toString())
             }
         }
     }
 
-    fun action(prompt: String, responseFromModel: (response: String, isError: Boolean) -> Unit) {
+    fun action(prompt: String, responseFromModel: (response: JSONObject?, isError: Boolean, errorDesc: String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             val answer: String?
             try {
                 answer = chat.sendMessage(prompt).candidates[0].content.parts[0].asTextOrNull()
+                val jsonResponse = JSONObject(answer!!)
                 Log.d("ResponseViewModel", "Response content: $answer")
-                responseFromModel(answer.toString(), false)
+                responseFromModel(jsonResponse, false, null)
             } catch (e: Exception) {
-                Log.e("ResponseViewModel", "Error updating last answer: $e")
-                responseFromModel(e.toString(), true)
+                Log.e("ChatModelInit", "Error initializing chat: $e")
+                responseFromModel(null, true, e.toString())
             }
         }
     }
