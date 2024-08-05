@@ -1,9 +1,11 @@
 package com.sajeg.storycreator
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +18,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -34,6 +37,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -50,6 +54,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -71,19 +76,95 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 var history: History by mutableStateOf(History("N/A", parts = mutableListOf()))
+val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class MainActivity : ComponentActivity() {
+    private val requestPermissionLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.RequestPermission()
+        ) {}
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             StoryCreatorTheme {
                 Surface(Modifier.fillMaxSize()) {
+                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
+                        != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        var askForMicPermission by remember { mutableStateOf(false) }
+                        SaveManager.readBoolean("micAllowed", this) { value ->
+                            if (value == null) {
+                                askForMicPermission = true
+                            }
+                        }
+                        if (askForMicPermission) {
+                            AlertDialog(
+                                onDismissRequest = {
+                                    askForMicPermission = false
+                                    SaveManager.saveBoolean(
+                                        "micAllowed",
+                                        false,
+                                        this
+                                    )
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        askForMicPermission = false
+                                        SaveManager.saveBoolean(
+                                            "micAllowed",
+                                            true,
+                                            this
+                                        )
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                        }
+                                    }) {
+                                        Text(text = "Confirm")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = {
+                                        SaveManager.saveBoolean(
+                                            "micAllowed",
+                                            false,
+                                            this
+                                        )
+                                    }) {
+                                        Text(text = "Dismiss")
+                                    }
+                                },
+                                title = {
+                                    Text(text = "Permission Request")
+                                },
+                                text = {
+                                    Text(
+                                        text = "The microphone is used for a more immersive experience. " +
+                                                "The app can read the story to you and then you can respond with your voice. " +
+                                                "Your voice is then transcribed on the device and then deleted."
+                                    )
+                                },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.mic),
+                                        contentDescription = ""
+                                    )
+                                }
+                            )
+                        }
+                    } else {
+                        Log.d("Permission", "Already granted")
+                    }
                     Main()
                 }
             }
