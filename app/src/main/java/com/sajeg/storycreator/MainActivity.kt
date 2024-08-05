@@ -1,7 +1,6 @@
 package com.sajeg.storycreator
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -9,49 +8,35 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -60,30 +45,23 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.navigation.compose.rememberNavController
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
-import kotlinx.coroutines.launch
-import org.json.JSONObject
 
 var history: History by mutableStateOf(History("N/A", parts = mutableListOf()))
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
@@ -177,7 +155,9 @@ class MainActivity : ComponentActivity() {
                     } else {
                         Log.d("Permission", "Already granted")
                     }
-                    Main()
+
+                    val navController = rememberNavController()
+                    SetupNavGraph(navController = navController)
                 }
             }
         }
@@ -205,394 +185,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
-
-@SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun Main() {
-    val context = LocalContext.current
-    val tts = remember { initTextToSpeech(context) }
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    var ttsFinished by remember { mutableStateOf(false) }
-    var title by remember { mutableStateOf("Story Smith") }
-    var readAloud by remember { mutableStateOf(false) }
-    val gradientColors = listOf(
-        MaterialTheme.colorScheme.primary,
-        MaterialTheme.colorScheme.secondary,
-        MaterialTheme.colorScheme.tertiary
-    )
-
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = title,
-                        textAlign = TextAlign.Center,
-                        style = TextStyle(
-                            brush = Brush.linearGradient(colors = gradientColors),
-                            fontSize = 24.sp
-                        )
-                    )
-                },
-                navigationIcon = {
-                    if (history.title != "N/A") {
-                        IconButton(
-                            onClick = { ShareChat.exportChat(context, history) },
-                            content = {
-                                Icon(
-                                    imageVector = Icons.Outlined.Share,
-                                    contentDescription = stringResource(R.string.open_menu),
-                                    tint = MaterialTheme.colorScheme.onSurface
-                                )
-                            }
-                        )
-                    }
-                },
-                actions = {
-                    if (history.parts.size != 0) {
-                        var micPermission by remember { mutableStateOf(true) }
-                        var pressed by remember { mutableStateOf(false) }
-                        IconButton(
-                            onClick = {
-                                SaveManager.readBoolean("micAllowed", context) { micAllowed ->
-                                    if (micAllowed == null) {
-                                        return@readBoolean
-                                    }
-                                    if (readAloud && micAllowed) {
-                                        readAloud = false
-                                        tts.stop()
-                                        history.parts[history.parts.lastIndex].wasReadAloud = false
-                                    } else if (micAllowed) {
-                                        readAloud = true
-                                    } else {
-                                        micPermission = false
-                                    }
-                                    pressed = true
-                                }
-                            },
-                            content = {
-                                if (readAloud) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.headset_off),
-                                        contentDescription = stringResource(R.string.deactivate_conversation),
-                                        tint = MaterialTheme.colorScheme.onSurface
-                                    )
-                                } else {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.headset),
-                                        contentDescription = stringResource(R.string.activate_conversation),
-                                        tint = MaterialTheme.colorScheme.onSurface
-                                    )
-                                }
-                            }
-                        )
-                        if (pressed && ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
-                            != PackageManager.PERMISSION_GRANTED) {
-                            AlertDialog(
-                                onDismissRequest = { pressed = false },
-                                confirmButton = {
-                                    TextButton(onClick = {
-                                        pressed = false
-                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                            data = Uri.fromParts("package", context.packageName, null)
-                                        }
-                                        context.startActivity(intent)
-                                    }) {
-                                        Text(text = "Settings")
-                                    }
-                                },
-                                dismissButton = {
-                                    TextButton(onClick = { pressed = false }) {
-                                        Text(text = "Dismiss")
-                                    }
-                                },
-                                title = {
-                                    Text(text = "Missing Permission")
-                                },
-                                text = {
-                                    Text(text = "To continue you need to give this app permission for accessing the microphone.")
-                                },
-                                icon = {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.mic),
-                                        contentDescription = ""
-                                    )
-                                })
-                        }
-                    }
-                }
-            )
-        }
-    ) { innerPadding ->
-        val contentModifier = Modifier
-            .padding(innerPadding)
-            .consumeWindowInsets(innerPadding)
-
-        Column(
-            modifier = contentModifier
-        ) {
-            if (history.parts.size == 0) {
-                StartNewStory(
-                    onProcessedBeginning = { newHistory ->
-                        history = newHistory
-                    }
-                )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Bottom,
-                    state = listState,
-                    userScrollEnabled = true
-                ) {
-                    title = history.title
-                    for (element in history.parts) {
-                        item {
-                            TextList(element = element, isEnded = history.isEnded)
-                        }
-                    }
-                    coroutineScope.launch {
-                        listState.animateScrollToItem(index = history.parts.size)
-                    }
-                    val lastElement = history.parts[history.parts.lastIndex]
-                    if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
-                        ttsFinished = false
-                        lastElement.wasReadAloud = true
-                        tts.speak(
-                            lastElement.content,
-                            TextToSpeech.QUEUE_FLUSH,
-                            null,
-                            "MODEL_MESSAGE"
-                        )
-                        tts.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                            override fun onDone(utteranceId: String) {
-                                ttsFinished = true
-                                Log.d("StorySmithTTS", "Finished")
-                            }
-
-                            @Deprecated("Deprecated in Java")
-                            override fun onError(utteranceId: String?) {
-                            }
-
-                            override fun onStart(utteranceId: String) {
-                            }
-                        })
-                    }
-                    if (ttsFinished and readAloud) {
-                        ttsFinished = false
-                        listenToUserInput(context)
-                    }
-                }
-                EnterText(
-                    modifier = Modifier.weight(0.1f),
-                    lastElement = history.parts.lastOrNull(),
-                    isEnded = history.isEnded,
-                    onTextSubmitted = {
-                        history.parts.add(StoryPart("Sajeg", it))
-                        AiCore.action(
-                            it,
-                            responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                                if (!error) {
-                                    val story = StoryPart(
-                                        role = "Gemini",
-                                        content = response!!.getString("story"),
-                                    )
-                                    story.parseSuggestions(response.getJSONArray("suggestions"))
-                                    history.parts.add(story)
-                                } else {
-                                    history.title = "Error"
-                                    history.isEnded = true
-                                    history.parts.add(
-                                        StoryPart(
-                                            role = "Gemini",
-                                            content = "A error occurred: $errorDesc",
-                                        )
-                                    )
-                                }
-                            })
-
-                    }
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-fun StartNewStory(
-    modifier: Modifier = Modifier,
-    onProcessedBeginning: (History) -> Unit = {}
-) {
-    val element = StoryPart(role = "Initializer", content = "")
-    var enableSelection by remember { mutableStateOf(true) }
-    val places: Array<String> = arrayOf(
-        stringResource(R.string.cyberpunk),
-        stringResource(R.string.space),
-        stringResource(R.string.wild_western),
-        stringResource(R.string.city),
-        stringResource(R.string.countryside),
-        stringResource(R.string.sea),
-        stringResource(R.string.fairyland)
-    )
-    val ideas: Array<String> = arrayOf(
-        stringResource(R.string.outlaws),
-        stringResource(R.string.robots),
-        stringResource(R.string.fairies),
-        stringResource(R.string.monsters),
-        stringResource(R.string.princesses),
-        stringResource(R.string.knights),
-        stringResource(R.string.unicorns),
-        stringResource(R.string.vampires),
-        stringResource(R.string.golems),
-        stringResource(R.string.pirates),
-        stringResource(R.string.slimes),
-        stringResource(R.string.vikings),
-        stringResource(R.string.dragons),
-        stringResource(R.string.magicians),
-        stringResource(R.string.superheros),
-        stringResource(R.string.aliens),
-    )
-    val selectedIdeas = remember { mutableStateListOf<String>() }
-    val selectedPlaces = remember { mutableStateListOf<String>() }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .safeDrawingPadding(),
-        verticalArrangement = Arrangement.Top
-    ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(top = 60.dp),
-            verticalArrangement = Arrangement.Center
-        ) {
-            if (enableSelection) {
-                val flowRowModifiers = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 10.dp)
-                    .padding(bottom = 15.dp)
-                //item {
-                Card(
-                    modifier = Modifier.padding(horizontal = 15.dp, vertical = 50.dp),
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 15.dp)
-                            .padding(top = 30.dp)
-                            .fillMaxWidth(),
-                        text = stringResource(R.string.where_should_the_story_take_place),
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    FlowRow(
-                        modifier = flowRowModifiers,
-                        Arrangement.SpaceBetween
-                    ) {
-                        for (i in 0..places.lastIndex) {
-                            val place = places[i]
-                            FilterChip(
-                                modifier = modifier.padding(horizontal = 5.dp),
-                                selected = selectedIdeas.contains(place),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                ),
-                                onClick = {
-                                    if (selectedIdeas.contains(place)) {
-                                        selectedIdeas.remove(place)
-                                    } else {
-                                        selectedIdeas.add(place)
-                                    }
-                                },
-                                label = { Text(text = place) },
-                            )
-                        }
-                    }
-                }
-                Card(
-                    modifier = Modifier
-                        .padding(horizontal = 15.dp)
-                        .padding(bottom = 50.dp),
-                    colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
-                ) {
-                    Text(
-                        modifier = Modifier
-                            .padding(horizontal = 15.dp)
-                            .padding(top = 30.dp)
-                            .fillMaxWidth(),
-                        text = stringResource(R.string.what_should_the_story_be_about),
-                        fontSize = 22.sp,
-                        lineHeight = 28.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    FlowRow(
-                        modifier = flowRowModifiers,
-                        Arrangement.SpaceBetween
-                    ) {
-                        for (i in 0..ideas.lastIndex) {
-                            val idea = ideas[i]
-                            FilterChip(
-                                modifier = modifier.padding(horizontal = 5.dp),
-                                selected = selectedIdeas.contains(idea),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                ),
-                                onClick = {
-                                    if (selectedIdeas.contains(idea)) {
-                                        selectedIdeas.remove(idea)
-                                    } else {
-                                        selectedIdeas.add(idea)
-                                    }
-                                },
-                                label = { Text(text = idea) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-        if (enableSelection) {
-            EnterText(lastElement = element, isEnded = history.isEnded, onTextSubmitted = {
-                enableSelection = false
-                AiCore.initStoryTelling(
-                    theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
-                    responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                        if (!error) {
-                            val story = StoryPart(
-                                role = "Gemini",
-                                content = response!!.getString("story")
-                            )
-                            story.parseSuggestions(response.getJSONArray("suggestions"))
-                            onProcessedBeginning(
-                                History(
-                                    title = response.getString("title"),
-                                    parts = mutableStateListOf(story)
-                                )
-                            )
-                        } else {
-                            val beginning = History(
-                                title = "Error",
-                                parts = mutableStateListOf(
-                                    StoryPart(
-                                        role = "Gemini",
-                                        content = "An error occurred: $errorDesc",
-                                    )
-                                ),
-                                isEnded = true
-                            )
-                            onProcessedBeginning(beginning)
-                        }
-                    })
-            })
-        }
-    }
-}
-
 
 fun initTextToSpeech(context: Context): TextToSpeech {
     val tts = TextToSpeech(context) { status ->

@@ -71,10 +71,13 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.5.1")
     implementation("androidx.navigation:navigation-compose:2.7.7")
-    //Preferences DataStore:
+    // Preferences DataStore:
     implementation("androidx.datastore:datastore-preferences:1.1.1")
+    // Navigation
+    implementation("androidx.navigation:navigation-compose:2.8.0-beta06")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
