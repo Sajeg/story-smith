@@ -4,12 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.core.content.ContextCompat.startActivity
 import androidx.core.content.FileProvider
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -23,24 +20,20 @@ import java.nio.charset.StandardCharsets
 
 object ShareChat {
 
-    fun importChat(context: Context, uri: Uri): SnapshotStateList<ChatHistory> {
-        val inputStream = context.contentResolver.openInputStream(uri) ?: return mutableStateListOf()
+    fun importChat(context: Context, uri: Uri): History? {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
         val byteArray = getByteArrayFromInputStream(inputStream)
         val jsonData = Json.parseToJsonElement(String(byteArray, StandardCharsets.UTF_8))
-        val output = mutableStateListOf<ChatHistory>()
-        if (jsonData is JsonArray) {
-            for (message in jsonData.jsonArray) {
-                output.add(parseFromJson(message))
-            }
-        }
+        val output = parseFromJson(jsonData)
         inputStream.close()
         return output
     }
 
-    fun exportChat(context: Context, data: MutableList<ChatHistory>) {
+    fun exportChat(context: Context, data: History) {
         val tempFile = File(context.cacheDir, "chat.json")
         val outputStream = FileOutputStream(tempFile)
-        val modifiedData = toList(data)
+
+        val modifiedList = toList(data.parts)
         val byteArray = modifiedData.toString().toByteArray()
         Log.d("ExportChat", modifiedData.toString())
         Log.d("ExportChat", modifiedData.toString().toByteArray().toString())
@@ -61,19 +54,24 @@ object ShareChat {
     }
 
 
-    private fun parseFromJson(data: JsonElement): ChatHistory {
-        val suggestions = arrayOf("","","")
-        for ((i, suggestion) in data.jsonObject["suggestions"]!!.jsonArray.withIndex()){
-            Log.d("Suggestions", suggestion.toString())
-            suggestions[i] = suggestion.toString().replace('"', ' ').trim()
+    private fun parseFromJson(data: JsonElement): History {
+        val parts = mutableListOf<StoryPart>()
+        for (message in data.jsonObject["parts"]!!.jsonArray) {
+            val suggestions = arrayOf("","","")
+            for ((i, suggestion) in message.jsonObject["suggestions"]!!.jsonArray.withIndex()){
+                Log.d("Suggestions", suggestion.toString())
+                suggestions[i] = suggestion.toString().replace('"', ' ').trim()
+            }
+            parts.add(StoryPart(
+                wasReadAloud = false,
+                role = message.jsonObject["role"]!!.jsonPrimitive.content,
+                content = message.jsonObject["content"]!!.jsonPrimitive.content
+            ))
         }
-        return ChatHistory(
+        return History(
             title = data.jsonObject["title"]!!.jsonPrimitive.content,
-            role = data.jsonObject["role"]!!.jsonPrimitive.content,
-            content = data.jsonObject["content"]!!.jsonPrimitive.content,
-            wasReadAloud = data.jsonObject["wasReadAloud"].toString() == "true",
-            endOfChat = data.jsonObject["endOfChat"].toString() == "true",
-            suggestions = suggestions
+            isEnded = data.jsonObject["isEnded"].toString() == "true",
+            parts = parts
         )
     }
 
@@ -94,7 +92,7 @@ object ShareChat {
         return byteArrayOutputStream.toByteArray()
     }
 
-    private fun toList(data: MutableList<ChatHistory>): List<JsonElement> {
+    private fun toList(data: MutableList<StoryPart>): List<JsonElement> {
         val output: MutableList<JsonElement> = mutableListOf()
         for (obj in data) {
             output.add(obj.toJsonElement())

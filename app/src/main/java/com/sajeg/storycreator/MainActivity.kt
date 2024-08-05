@@ -74,7 +74,7 @@ import androidx.compose.ui.unit.sp
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 
-var history = mutableStateListOf<ChatHistory>()
+var history: History = History("N/A", parts = mutableListOf())
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,7 +95,7 @@ class MainActivity : ComponentActivity() {
             }
             if (uri != null) {
                 try {
-                    history = ShareChat.importChat(this, uri)
+                    history = ShareChat.importChat(this, uri)!!
                     Toast.makeText(
                         this, "Story imported",
                         Toast.LENGTH_SHORT
@@ -124,6 +124,7 @@ private fun Main() {
     var ttsFinished by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("Story Smith") }
     var readAloud by remember { mutableStateOf(false) }
+    var history by remember { mutableStateOf<History?>(null) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -144,7 +145,7 @@ private fun Main() {
                     )
                 },
                 navigationIcon = {
-                    if (history.size != 0) {
+                    if (history != null) {
                         IconButton(
                             onClick = { ShareChat.exportChat(context, history) },
                             content = {

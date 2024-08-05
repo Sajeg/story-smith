@@ -13,9 +13,7 @@ data class ChatHistory(
     private var suggestions: Array<String> = arrayOf("", "", "")
 ) {
 
-    fun isModel(): Boolean {
-        return role == "Gemini"
-    }
+
 
     fun isInitializer(): Boolean {
         //Log.d("ChatHistory", (role == "Gemini").toString())
@@ -33,34 +31,7 @@ data class ChatHistory(
         suggestions = formattedSuggestions
     }
 
-    fun getSuggestions(): Array<String> {
-        return suggestions
-    }
 
-    fun hasSuggestions(): Boolean {
-        var emptySuggestion = 0
-        for (item in suggestions) {
-            if (item == "") {
-                emptySuggestion++
-            }
-        }
-        return emptySuggestion == 0
-    }
-
-    fun toJsonElement(): JsonElement {
-        val data = """{  
-            "title": "$title",
-            "role": "$role",
-            "content": "${content.replace("\"", "\\\"")}",
-            "wasReadAloud": "$wasReadAloud",
-            "endOfChat": "$endOfChat",
-            "suggestions": [
-                "${suggestions[0]}", "${suggestions[1]}", "${suggestions[2]}"
-            ]
-            }"""
-
-        return Json.parseToJsonElement(data)
-    }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
