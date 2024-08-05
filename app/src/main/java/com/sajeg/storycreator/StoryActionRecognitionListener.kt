@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.speech.RecognitionListener
 import android.speech.SpeechRecognizer
 import android.util.Log
+import org.json.JSONObject
 
 class StoryActionRecognitionListener : RecognitionListener {
 
@@ -40,26 +41,23 @@ class StoryActionRecognitionListener : RecognitionListener {
             Log.d("RecognitionListener", speechOutput)
 
 
-            history.add(ChatHistory(history[history.lastIndex].title,"Sajeg", speechOutput))
-            action(speechOutput, responseFromModel = { response: String, error: Boolean ->
+            history.parts.add(StoryPart("Sajeg", speechOutput))
+            AiCore.action(speechOutput, responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
                 if (!error) {
-                    val parts = response.split("{", "}")
-                    val suggestions = parts[1].split(";").toTypedArray()
-                    history.add(
-                        ChatHistory(
-                            title = history[history.lastIndex].title,
+                    history.parts.add(
+                        StoryPart(
                             role = "Gemini",
-                            content = parts[0].trimEnd(),
+                            content = response!!.getString("story"),
+                            suggestions = response.getJSONArray("suggestions") as Array<String>
                         )
                     )
-                    history.lastOrNull()?.addSuggestions(suggestions)
                 } else {
-                    history.add(
-                        ChatHistory(
-                            title = "Error",
+                    history.title = "Error"
+                    history.isEnded = true
+                    history.parts.add(
+                        StoryPart(
                             role = "Gemini",
-                            content = "A error occurred: $response",
-                            endOfChat = true
+                            content = "A error occurred: $errorDesc",
                         )
                     )
                 }

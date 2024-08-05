@@ -75,7 +75,7 @@ import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-var history: History = History("N/A", parts = mutableListOf())
+var history: History by mutableStateOf(History("N/A", parts = mutableListOf()))
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
             }
         }
         if (intent.action == Intent.ACTION_SEND) {
-            val uri : Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM)
@@ -201,7 +201,8 @@ private fun Main() {
             if (history.parts.size == 0) {
                 StartNewStory(
                     onProcessedBeginning = {
-                        history = it
+                        val newHistory : History by mutableStateOf(it)
+                        history = newHistory
                     }
                 )
             } else {
@@ -252,28 +253,30 @@ private fun Main() {
                 EnterText(
                     modifier = Modifier.weight(0.1f),
                     lastElement = history.parts.lastOrNull(),
+                    isEnded = history.isEnded,
                     onTextSubmitted = {
                         history.parts.add(StoryPart("Sajeg", it))
-                        AiCore.action(it, responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                            if (!error) {
-                                history.parts.add(
-                                    StoryPart(
+                        AiCore.action(
+                            it,
+                            responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+                                if (!error) {
+                                    val story = StoryPart(
                                         role = "Gemini",
                                         content = response!!.getString("story"),
-                                        suggestions = response.getJSONArray("suggestions") as Array<String>
                                     )
-                                )
-                            } else {
-                                history.title = "Error"
-                                history.isEnded = true
-                                history.parts.add(
-                                    StoryPart(
-                                        role = "Gemini",
-                                        content = "A error occurred: $response",
+                                    story.parseSuggestions(response.getJSONArray("suggestions"))
+                                    history.parts.add(story)
+                                } else {
+                                    history.title = "Error"
+                                    history.isEnded = true
+                                    history.parts.add(
+                                        StoryPart(
+                                            role = "Gemini",
+                                            content = "A error occurred: $errorDesc",
+                                        )
                                     )
-                                )
-                            }
-                        })
+                                }
+                            })
 
                     }
                 )
@@ -419,23 +422,22 @@ fun StartNewStory(
             }
         }
         if (enableSelection) {
-            EnterText(lastElement = element, onTextSubmitted = {
+            EnterText(lastElement = element, isEnded = history.isEnded, onTextSubmitted = {
                 enableSelection = false
                 AiCore.initStoryTelling(
                     theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
                     responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
                         if (!error) {
+                            val story = StoryPart(
+                                role = "Gemini",
+                                content = response!!.getString("story")
+                            )
+                            story.parseSuggestions(response.getJSONArray("suggestions"))
                             onProcessedBeginning(
                                 History(
-                                title = response!!.getString("title"),
-                                parts = mutableListOf(
-                                    StoryPart(
-                                        role = "Gemini",
-                                        content = response.getString("story"),
-                                        suggestions = response.getJSONArray("suggestions") as Array<String>
-                                    )
+                                    title = response.getString("title"),
+                                    parts = mutableListOf(story)
                                 )
-                            )
                             )
                         } else {
                             val beginning = History(
@@ -444,7 +446,6 @@ fun StartNewStory(
                                     StoryPart(
                                         role = "Gemini",
                                         content = "An error occurred: $errorDesc",
-                                        suggestions = arrayOf("","","")
                                     )
                                 ),
                                 isEnded = true
@@ -476,7 +477,10 @@ fun listenToUserInput(context: Context) {
         RecognizerIntent.EXTRA_LANGUAGE_MODEL,
         RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
     )
-    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, AiCore.locale.language + "-" + AiCore.locale.region)
+    intent.putExtra(
+        RecognizerIntent.EXTRA_LANGUAGE,
+        AiCore.locale.language + "-" + AiCore.locale.region
+    )
 
     stt.setRecognitionListener(listener)
     stt.startListening(intent)
@@ -487,7 +491,6 @@ fun TextList(
     modifier: Modifier = Modifier,
     element: StoryPart,
     isEnded: Boolean,
-    onCardClick: (beginning: ChatHistory) -> Unit = {}
 ) {
     val colors: CardColors = if (element.isModel() and isEnded) {
         CardColors(
@@ -512,7 +515,6 @@ fun TextList(
         )
     }
     Card(
-        onClick = { onCardClick(element) },
         content = { Text(modifier = Modifier.padding(15.dp), text = element.content) },
         colors = colors,
         modifier = modifier
@@ -527,6 +529,7 @@ fun TextList(
 fun EnterText(
     modifier: Modifier = Modifier,
     lastElement: StoryPart?,
+    isEnded: Boolean,
     onTextSubmitted: (text: String) -> Unit,
 ) {
     var value by remember { mutableStateOf("") }
@@ -536,7 +539,7 @@ fun EnterText(
 
     Column {
         if (lastElement != null) {
-            if (lastElement.endOfChat) {
+            if (isEnded) {
                 enableInput = false
                 Button(
                     modifier = Modifier
@@ -559,7 +562,7 @@ fun EnterText(
                 .padding(top = 5.dp)
         ) {
             if (lastElement != null && lastElement.hasSuggestions()) {
-                for (idea in lastElement.getSuggestions()) {
+                for (idea in lastElement.suggestions) {
                     item {
                         SuggestionChip(
                             modifier = modifier

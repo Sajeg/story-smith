@@ -33,7 +33,7 @@ object ShareChat {
         val tempFile = File(context.cacheDir, "chat.json")
         val outputStream = FileOutputStream(tempFile)
 
-        val modifiedList = toList(data.parts)
+        val modifiedData = data.toJsonElement()
         val byteArray = modifiedData.toString().toByteArray()
         Log.d("ExportChat", modifiedData.toString())
         Log.d("ExportChat", modifiedData.toString().toByteArray().toString())
@@ -91,13 +91,5 @@ object ShareChat {
             bytesRead = inputStream.read(buffer)
         }
         return byteArrayOutputStream.toByteArray()
-    }
-
-    private fun toList(data: MutableList<StoryPart>): List<JsonElement> {
-        val output: MutableList<JsonElement> = mutableListOf()
-        for (obj in data) {
-            output.add(obj.toJsonElement())
-        }
-        return output
     }
 }

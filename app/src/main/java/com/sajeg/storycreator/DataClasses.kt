@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
+import org.json.JSONArray
 
 data class History(
     var title: String,
@@ -35,8 +36,16 @@ data class StoryPart(
         return role == "Gemini"
     }
 
-    fun getSuggestions(): Array<String> {
-        return suggestions
+    fun isInitializer(): Boolean {
+        return role == "Initializer"
+    }
+
+    fun parseSuggestions(array: JSONArray){
+        val output = mutableListOf<String>()
+        for (i in 0..< array.length()) {
+            output.add(array[i].toString())
+        }
+        suggestions = output.toTypedArray()
     }
 
     fun hasSuggestions(): Boolean {
