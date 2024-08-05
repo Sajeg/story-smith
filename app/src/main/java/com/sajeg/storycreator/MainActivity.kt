@@ -200,8 +200,7 @@ private fun Main() {
         ) {
             if (history.parts.size == 0) {
                 StartNewStory(
-                    onProcessedBeginning = {
-                        val newHistory : History by mutableStateOf(it)
+                    onProcessedBeginning = { newHistory ->
                         history = newHistory
                     }
                 )
@@ -436,13 +435,13 @@ fun StartNewStory(
                             onProcessedBeginning(
                                 History(
                                     title = response.getString("title"),
-                                    parts = mutableListOf(story)
+                                    parts = mutableStateListOf(story)
                                 )
                             )
                         } else {
                             val beginning = History(
                                 title = "Error",
-                                parts = mutableListOf(
+                                parts = mutableStateListOf(
                                     StoryPart(
                                         role = "Gemini",
                                         content = "An error occurred: $errorDesc",
