@@ -32,7 +32,8 @@ object AiCore {
            Always remember to keep it short, but not too short, so you can still make plot twists. 
            200 to 300 words fit the best, but if you need more it's okay too.
            Don't use the Asterisk Symbol or Brackets at any time. Remember to always use the present tense.
-           In the first message generate a title and 3 suggestions after every message.
+           In the first message generate a title and generate always 3 suggestions after each message. 
+           So that you have {"title":"","story":"",suggestions:["","",""]}
                    """
                 )
             )

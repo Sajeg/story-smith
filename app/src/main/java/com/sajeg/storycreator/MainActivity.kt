@@ -9,6 +9,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
@@ -91,7 +92,21 @@ class MainActivity : ComponentActivity() {
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
-        ) {}
+        ) { permissionAccepted ->
+            if (permissionAccepted) {
+                SaveManager.saveBoolean(
+                    "micAllowed",
+                    true,
+                    this
+                )
+            } else {
+                SaveManager.saveBoolean(
+                    "micAllowed",
+                    false,
+                    this
+                )
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,29 +118,20 @@ class MainActivity : ComponentActivity() {
                         != PackageManager.PERMISSION_GRANTED
                     ) {
                         var askForMicPermission by remember { mutableStateOf(false) }
-                        SaveManager.readBoolean("micAllowed", this) { value ->
-                            if (value == null) {
-                                askForMicPermission = true
-                            }
-                        }
+                        var alreadyAsked by remember { mutableStateOf(false) }
                         if (askForMicPermission) {
                             AlertDialog(
                                 onDismissRequest = {
-                                    askForMicPermission = false
                                     SaveManager.saveBoolean(
                                         "micAllowed",
                                         false,
                                         this
                                     )
+                                    askForMicPermission = false
                                 },
                                 confirmButton = {
                                     TextButton(onClick = {
                                         askForMicPermission = false
-                                        SaveManager.saveBoolean(
-                                            "micAllowed",
-                                            true,
-                                            this
-                                        )
                                         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                         }
@@ -140,6 +146,7 @@ class MainActivity : ComponentActivity() {
                                             false,
                                             this
                                         )
+                                        askForMicPermission = false
                                     }) {
                                         Text(text = "Dismiss")
                                     }
@@ -161,6 +168,11 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             )
+                        } else if (!alreadyAsked) {
+                            alreadyAsked = true
+                            SaveManager.readBoolean("micAllowed", this) { value ->
+                                askForMicPermission = value == null
+                            }
                         }
                     } else {
                         Log.d("Permission", "Already granted")
@@ -241,14 +253,24 @@ private fun Main() {
                 },
                 actions = {
                     if (history.parts.size != 0) {
+                        var micPermission by remember { mutableStateOf(true) }
+                        var pressed by remember { mutableStateOf(false) }
                         IconButton(
                             onClick = {
-                                if (readAloud) {
-                                    readAloud = false
-                                    tts.stop()
-                                    history.parts[history.parts.lastIndex].wasReadAloud = false
-                                } else {
-                                    readAloud = true
+                                SaveManager.readBoolean("micAllowed", context) { micAllowed ->
+                                    if (micAllowed == null) {
+                                        return@readBoolean
+                                    }
+                                    if (readAloud && micAllowed) {
+                                        readAloud = false
+                                        tts.stop()
+                                        history.parts[history.parts.lastIndex].wasReadAloud = false
+                                    } else if (micAllowed) {
+                                        readAloud = true
+                                    } else {
+                                        micPermission = false
+                                    }
+                                    pressed = true
                                 }
                             },
                             content = {
@@ -267,6 +289,39 @@ private fun Main() {
                                 }
                             }
                         )
+                        if (pressed && ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO)
+                            != PackageManager.PERMISSION_GRANTED) {
+                            AlertDialog(
+                                onDismissRequest = { pressed = false },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        pressed = false
+                                        val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                            data = Uri.fromParts("package", context.packageName, null)
+                                        }
+                                        context.startActivity(intent)
+                                    }) {
+                                        Text(text = "Settings")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { pressed = false }) {
+                                        Text(text = "Dismiss")
+                                    }
+                                },
+                                title = {
+                                    Text(text = "Missing Permission")
+                                },
+                                text = {
+                                    Text(text = "To continue you need to give this app permission for accessing the microphone.")
+                                },
+                                icon = {
+                                    Icon(
+                                        painter = painterResource(id = R.drawable.mic),
+                                        contentDescription = ""
+                                    )
+                                })
+                        }
                     }
                 }
             )
