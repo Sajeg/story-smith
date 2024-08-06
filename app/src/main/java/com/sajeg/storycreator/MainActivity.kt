@@ -61,6 +61,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             StoryCreatorTheme {
                 Surface(Modifier.fillMaxSize()) {
+                    SaveManager.initDatabase(this)
+                    val navController = rememberNavController()
+                    SetupNavGraph(navController = navController)
+
                     if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED
                     ) {
@@ -124,9 +128,6 @@ class MainActivity : ComponentActivity() {
                     } else {
                         Log.d("Permission", "Already granted")
                     }
-
-                    val navController = rememberNavController()
-                    SetupNavGraph(navController = navController)
                 }
             }
         }

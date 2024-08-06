@@ -13,18 +13,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.json.JSONArray
-import org.json.JSONObject
-import java.nio.charset.StandardCharsets
 import java.time.LocalDate
 
 
 object SaveManager {
     // Room database
-    var db: Database? = null
+    private var db: Database? = null
 
     fun initDatabase(context: Context) {
         db = Room.databaseBuilder(
@@ -33,47 +31,70 @@ object SaveManager {
         ).build()
     }
 
-    fun saveStory(data: History) {
-        try {
-            val storyDao = db!!.storyDao()
-            val date = LocalDate.now()
-            val story = Story(
-                id = storyDao.getHighestId() + 1,
-                title = data.title,
-                date = date.toString(),
-                content = data.toJsonElement().toString()
-            )
-            storyDao.addStory(story)
-        } catch (e: Exception) {
-            Log.e("SaveManager", "Saving story failed: ${e.localizedMessage}")
+    fun getNewId(done: (id: Int) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            done(db!!.storyDao().getHighestId() + 1)
         }
     }
 
-    fun loadStory(id: Int): History{
-        val storyDao = db!!.storyDao()
-        val data = storyDao.getStory(id)
-        val parts = mutableListOf<StoryPart>()
-        val content = JSONArray(data.content)
-
-        for (message in content) {
-            val suggestions = arrayOf("","","")
-            for ((i, suggestion) in message.jsonObject["suggestions"]!!.jsonArray.withIndex()){
-                Log.d("Suggestions", suggestion.toString())
-                suggestions[i] = suggestion.toString().replace('"', ' ').trim()
+    fun saveStory(data: History, id: Int) {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val storyDao = db!!.storyDao()
+                val date = LocalDate.now()
+                val story = Story(
+                    id = id,
+                    title = data.title,
+                    date = date.toString(),
+                    content = buildJsonArray {
+                        for (part in data.parts) {
+                            add(part.toJsonElement())
+                        }
+                    }.toString()
+                )
+                storyDao.saveStory(story)
+            } catch (e: Exception) {
+                Log.e("SaveManager", "Saving story failed: ${e.localizedMessage}")
             }
-            parts.add(StoryPart(
-                wasReadAloud = false,
-                role = message.jsonObject["role"]!!.jsonPrimitive.content,
-                content = message.jsonObject["content"]!!.jsonPrimitive.content,
-                suggestions = suggestions
-            ))
         }
-        val history = History(
-            title = data.title,
-            parts = parts
-        )
+    }
 
-        return history
+    fun loadStory(id: Int, done: (history: History) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val storyDao = db!!.storyDao()
+            val data = storyDao.getStory(id)
+            val parts = mutableListOf<StoryPart>()
+            val content = Json.parseToJsonElement(data.content).jsonArray
+
+            for (message in content) {
+                val suggestions = arrayOf("", "", "")
+                for ((i, suggestion) in message.jsonObject["suggestions"]!!.jsonArray.withIndex()) {
+                    Log.d("Suggestions", suggestion.toString())
+                    suggestions[i] = suggestion.toString().replace('"', ' ').trim()
+                }
+                parts.add(
+                    StoryPart(
+                        wasReadAloud = false,
+                        role = message.jsonObject["role"]!!.jsonPrimitive.content,
+                        content = message.jsonObject["content"]!!.jsonPrimitive.content,
+                        suggestions = suggestions
+                    )
+                )
+            }
+            val history = History(
+                title = data.title,
+                parts = parts
+            )
+            done(history)
+        }
+
+    }
+
+    fun getStories(done: (stories: List<StoryTitle>) -> Unit) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val storyDao = db!!.storyDao()
+            done(storyDao.getStories())
+        }
     }
 
     // Preferences DataStore

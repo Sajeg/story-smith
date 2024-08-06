@@ -75,6 +75,7 @@ fun Chat(navController: NavController, prompt: String) {
     val coroutineScope = rememberCoroutineScope()
     var ttsFinished by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("Story Smith") }
+    var id by remember { mutableStateOf(-1) }
     var readAloud by remember { mutableStateOf(false) }
     var lastElement by remember { mutableStateOf(StoryPart("Placeholder", "")) }
     var requestOngoing by remember { mutableStateOf(false) }
@@ -211,34 +212,38 @@ fun Chat(navController: NavController, prompt: String) {
             }
             if (!requestOngoing) {
                 requestOngoing = true
-                AiCore.action(
-                    "Start the story with the following places and theme: $prompt " +
-                            "and with the following language: ${Locale.current}",
-                    responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                        if (!error) {
-                            val story = StoryPart(
-                                role = "Gemini",
-                                content = response!!.getString("story"),
-                            )
-                            story.parseSuggestions(response.getJSONArray("suggestions"))
-                            history = History(
-                                title = response.getString("title"),
-                                parts = mutableStateListOf(story)
-                            )
-                            lastElement = story
-                        } else {
-                            val story = StoryPart(
-                                role = "Gemini",
-                                content = "A error occurred: $errorDesc",
-                            )
-                            history.title = "Error"
-                            history.isEnded = true
-                            history.parts.add(story)
-                            lastElement = story
+                SaveManager.getNewId { newId ->
+                    id = newId
+                    AiCore.action(
+                        "Start the story with the following places and theme: $prompt " +
+                                "and with the following language: ${Locale.current}",
+                        responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+                            if (!error) {
+                                val story = StoryPart(
+                                    role = "Gemini",
+                                    content = response!!.getString("story"),
+                                )
+                                story.parseSuggestions(response.getJSONArray("suggestions"))
+                                history = History(
+                                    title = response.getString("title"),
+                                    parts = mutableStateListOf(story)
+                                )
+                                lastElement = story
+                                SaveManager.saveStory(history, id)
+                            } else {
+                                val story = StoryPart(
+                                    role = "Gemini",
+                                    content = "A error occurred: $errorDesc",
+                                )
+                                history.title = "Error"
+                                history.isEnded = true
+                                history.parts.add(story)
+                                lastElement = story
+                            }
+                            requestOngoing = false
                         }
-                        requestOngoing = false
-                    }
-                )
+                    )
+                }
             }
         } else {
             Column(
@@ -305,6 +310,7 @@ fun Chat(navController: NavController, prompt: String) {
                                     )
                                     story.parseSuggestions(response.getJSONArray("suggestions"))
                                     history.parts.add(story)
+                                    SaveManager.saveStory(history, id)
                                 } else {
                                     history.title = "Error"
                                     history.isEnded = true

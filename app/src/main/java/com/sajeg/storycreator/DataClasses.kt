@@ -46,7 +46,7 @@ data class StoryPart(
 
     fun parseSuggestions(array: JSONArray){
         val output = mutableListOf<String>()
-        for (i in 0..< array.length()) {
+        for (i in 0 until  array.length()) {
             output.add(array[i].toString())
         }
         suggestions = output.toTypedArray()
@@ -88,3 +88,8 @@ data class StoryPart(
         return suggestions.contentHashCode()
     }
 }
+
+data class StoryTitle(
+    val id: Int,
+    val title: String
+)
