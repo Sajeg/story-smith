@@ -1,7 +1,6 @@
 package com.sajeg.storycreator
 
 import android.util.Log
-import androidx.compose.ui.text.intl.Locale
 import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.BlockThreshold
 import com.google.ai.client.generativeai.type.Content
@@ -48,32 +47,7 @@ object AiCore {
         }
     )
 
-    var chat = generativeModel.startChat()
-    val locale = Locale.current
-    var storyTheme: String = ""
-
-
-    fun initStoryTelling(
-        theme: String,
-        responseFromModel: (response: JSONObject?, isError: Boolean, errorDesc: String?) -> Unit
-    ) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                storyTheme = theme
-                chat = generativeModel.startChat()
-                val answer = chat.sendMessage(
-                    "Start the story with the following places and theme: $storyTheme " +
-                            "and with the following language: ${locale.language}"
-                ).candidates[0].content.parts[0].asTextOrNull()
-                val jsonResponse = JSONObject(answer!!)
-                Log.d("ResponseViewModel", "Response content: $answer")
-                responseFromModel(jsonResponse, false, null)
-            } catch (e: Exception) {
-                Log.e("ChatModelInit", "Error initializing chat: $e")
-                responseFromModel(null, true, e.toString())
-            }
-        }
-    }
+    private var chat = generativeModel.startChat()
 
     fun action(prompt: String, responseFromModel: (response: JSONObject?, isError: Boolean, errorDesc: String?) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {

@@ -40,6 +40,10 @@ data class StoryPart(
         return role == "Initializer"
     }
 
+    fun isPlaceholder(): Boolean {
+        return role == "Placeholder"
+    }
+
     fun parseSuggestions(array: JSONArray){
         val output = mutableListOf<String>()
         for (i in 0..< array.length()) {

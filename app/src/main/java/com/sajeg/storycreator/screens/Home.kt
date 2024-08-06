@@ -27,26 +27,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.sajeg.storycreator.AiCore
+import com.sajeg.storycreator.ChatScreen
 import com.sajeg.storycreator.EnterText
-import com.sajeg.storycreator.History
 import com.sajeg.storycreator.R
 import com.sajeg.storycreator.StoryPart
 import com.sajeg.storycreator.history
-import org.json.JSONObject
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun Home(navController: NavController) {
-    val context = LocalContext.current
     val title by remember { mutableStateOf("Story Smith") }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
@@ -208,35 +204,10 @@ fun Home(navController: NavController) {
                     }
                 }
                 if (enableSelection) {
-                    EnterText(lastElement = element, isEnded = history.isEnded, onTextSubmitted = {
+                    EnterText(lastElement = element, isEnded = history.isEnded, navController = navController, onTextSubmitted = {
                         enableSelection = false
-                        AiCore.initStoryTelling(
-                            theme = "$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}",
-                            responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                                if (!error) {
-                                    val story = StoryPart(
-                                        role = "Gemini",
-                                        content = response!!.getString("story")
-                                    )
-                                    story.parseSuggestions(response.getJSONArray("suggestions"))
-                                    history = History(
-                                        title = response.getString("title"),
-                                        parts = mutableStateListOf(story)
-                                    )
-                                } else {
-                                    history = History(
-                                        title = "Error",
-                                        parts = mutableStateListOf(
-                                            StoryPart(
-                                                role = "Gemini",
-                                                content = "An error occurred: $errorDesc",
-                                            )
-                                        ),
-                                        isEnded = true
-
-                                    )
-                                }
-                            })
+                        navController.navigate(
+                            ChatScreen("$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}"))
                     })
                 }
             }
