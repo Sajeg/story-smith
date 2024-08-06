@@ -2,6 +2,7 @@ package com.sajeg.storycreator
 
 import android.content.Context
 import android.util.Log
+import androidx.compose.runtime.mutableStateListOf
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -63,7 +64,7 @@ object SaveManager {
         CoroutineScope(Dispatchers.IO).launch {
             val storyDao = db!!.storyDao()
             val data = storyDao.getStory(id)
-            val parts = mutableListOf<StoryPart>()
+            val parts = mutableStateListOf<StoryPart>()
             val content = Json.parseToJsonElement(data.content).jsonArray
 
             for (message in content) {

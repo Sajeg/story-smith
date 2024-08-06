@@ -20,7 +20,7 @@ fun SetupNavGraph(
         }
         composable<ChatScreen> {
             val params = it.toRoute<ChatScreen>()
-            Chat(navController, params.prompt)
+            Chat(navController, params.prompt, params.id)
         }
     }
 }
@@ -30,5 +30,6 @@ object HomeScreen
 
 @Serializable
 data class ChatScreen(
-    val prompt: String
+    val prompt: String,
+    val id: Int = -1
 )

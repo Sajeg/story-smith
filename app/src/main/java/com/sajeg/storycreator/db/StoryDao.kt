@@ -9,7 +9,7 @@ import com.sajeg.storycreator.StoryTitle
 
 @Dao
 interface StoryDao {
-    @Query("SELECT id, title FROM Story")
+    @Query("SELECT id, title FROM Story ORDER BY id DESC")
     fun getStories(): List<StoryTitle>
 
     @Query("SELECT * FROM STORY WHERE id IN (:id)")
