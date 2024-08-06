@@ -1,16 +1,82 @@
 package com.sajeg.storycreator
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.room.Room
+import com.sajeg.storycreator.db.Database
+import com.sajeg.storycreator.db.Story
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import org.json.JSONArray
+import org.json.JSONObject
+import java.nio.charset.StandardCharsets
+import java.time.LocalDate
 
 
 object SaveManager {
+    // Room database
+    var db: Database? = null
+
+    fun initDatabase(context: Context) {
+        db = Room.databaseBuilder(
+            context,
+            Database::class.java, "stories"
+        ).build()
+    }
+
+    fun saveStory(data: History) {
+        try {
+            val storyDao = db!!.storyDao()
+            val date = LocalDate.now()
+            val story = Story(
+                id = storyDao.getHighestId() + 1,
+                title = data.title,
+                date = date.toString(),
+                content = data.toJsonElement().toString()
+            )
+            storyDao.addStory(story)
+        } catch (e: Exception) {
+            Log.e("SaveManager", "Saving story failed: ${e.localizedMessage}")
+        }
+    }
+
+    fun loadStory(id: Int): History{
+        val storyDao = db!!.storyDao()
+        val data = storyDao.getStory(id)
+        val parts = mutableListOf<StoryPart>()
+        val content = JSONArray(data.content)
+
+        for (message in content) {
+            val suggestions = arrayOf("","","")
+            for ((i, suggestion) in message.jsonObject["suggestions"]!!.jsonArray.withIndex()){
+                Log.d("Suggestions", suggestion.toString())
+                suggestions[i] = suggestion.toString().replace('"', ' ').trim()
+            }
+            parts.add(StoryPart(
+                wasReadAloud = false,
+                role = message.jsonObject["role"]!!.jsonPrimitive.content,
+                content = message.jsonObject["content"]!!.jsonPrimitive.content,
+                suggestions = suggestions
+            ))
+        }
+        val history = History(
+            title = data.title,
+            parts = parts
+        )
+
+        return history
+    }
+
+    // Preferences DataStore
     fun readString(value: String, context: Context, onResponse: (data: String) -> Unit) {
         val valueKey = stringPreferencesKey(value)
         CoroutineScope(Dispatchers.IO).launch {
