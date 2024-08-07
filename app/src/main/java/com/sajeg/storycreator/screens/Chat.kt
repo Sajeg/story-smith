@@ -59,7 +59,6 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.sajeg.storycreator.AiCore
@@ -103,7 +102,12 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
         gesturesEnabled = true,
         drawerContent = {
             ModalDrawerSheet {
-                Text(text = title, modifier = Modifier.padding(16.dp), fontSize = 32.sp)
+                Text(
+                    text = title,
+                    modifier = Modifier.padding(16.dp),
+                    fontSize = 32.sp,
+                    lineHeight = 32.sp
+                )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
                 NavigationDrawerItem(
                     label = {
@@ -112,7 +116,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                 painter = painterResource(id = R.drawable.share),
                                 contentDescription = ""
                             )
-                            Text(text = "Share", modifier = Modifier.padding(start = 8.dp))
+                            Text(text = stringResource(R.string.share), modifier = Modifier.padding(start = 8.dp))
                         }
                     },
                     selected = false,
@@ -131,7 +135,10 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                 painter = painterResource(id = R.drawable.edit),
                                 contentDescription = ""
                             )
-                            Text(text = "Change Title", modifier = Modifier.padding(start = 8.dp))
+                            Text(
+                                text = stringResource(R.string.change_title),
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
                     },
                     selected = false,
@@ -150,7 +157,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                 painter = painterResource(id = R.drawable.delete),
                                 contentDescription = ""
                             )
-                            Text(text = "Delete", modifier = Modifier.padding(start = 8.dp))
+                            Text(text = stringResource(R.string.delete), modifier = Modifier.padding(start = 8.dp))
                         }
                     },
                     selected = false,
@@ -162,7 +169,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                         }
                     }
                 )
-                Text(text = "History", modifier = Modifier.padding(16.dp), fontSize = 20.sp)
+                Text(text = stringResource(R.string.history), modifier = Modifier.padding(16.dp), fontSize = 20.sp)
                 HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
                 var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
                 var isRunning by remember { mutableStateOf(false) }
@@ -177,7 +184,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                             contentDescription = ""
                                         )
                                         Text(
-                                            text = "New Story",
+                                            text = stringResource(id = R.string.new_story),
                                             modifier = Modifier.padding(start = 8.dp)
                                         )
                                     }
@@ -194,6 +201,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                             SaveManager.getStories { stories = it }
                         } else if (stories != null) {
                             for (story in stories!!) {
+                                Log.d("Story", story.title)
                                 item {
                                     NavigationDrawerItem(
                                         label = {
@@ -314,19 +322,19 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                                 }
                                             context.startActivity(intent)
                                         }) {
-                                            Text(text = "Settings")
+                                            Text(text = stringResource(R.string.settings))
                                         }
                                     },
                                     dismissButton = {
                                         TextButton(onClick = { pressed = false }) {
-                                            Text(text = "Dismiss")
+                                            Text(text = stringResource(id = R.string.dismiss))
                                         }
                                     },
                                     title = {
-                                        Text(text = "Missing Permission")
+                                        Text(text = stringResource(R.string.missing_permission))
                                     },
                                     text = {
-                                        Text(text = "To continue you need to give this app permission for accessing the microphone.")
+                                        Text(text = stringResource(R.string.mic_ask_again))
                                     },
                                     icon = {
                                         Icon(
@@ -342,30 +350,57 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
         ) { innerPadding ->
             if (isEditing) {
                 var newTitle by remember { mutableStateOf("") }
-                Dialog(onDismissRequest = { isEditing = false }) {
-                    TextField(value = newTitle, onValueChange = { newTitle = it })
-                    Row(
-                        verticalAlignment = Alignment.Bottom,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        TextButton(
-                            onClick = { SaveManager.changeTitle(id, newTitle) }) {
-                            Text(text = "Dismiss")
+                AlertDialog(
+                    onDismissRequest = { isEditing = false },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            SaveManager.changeTitle(id, newTitle); isEditing = false; title =
+                            newTitle
+                        }) {
+                            Text(text = stringResource(id = R.string.confirm))
                         }
-                        TextButton(
-                            onClick = { SaveManager.changeTitle(id, newTitle) }) {
-                            Text(text = "Confirm")
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { isEditing = false }) {
+                            Text(text = stringResource(id = R.string.dismiss))
                         }
-                    }
-                }
+                    },
+                    text = {
+                        TextField(
+                            value = newTitle,
+                            onValueChange = { newTitle = it },
+                            placeholder = { Text(text = title) },
+                            singleLine = true
+                        )
+                    },
+                    title = { Text(text = stringResource(R.string.edit_title)) },
+                )
             }
             if (isDeleting) {
                 AlertDialog(
                     onDismissRequest = { isDeleting = false },
-                    confirmButton = { navController.navigate(HomeScreen) },
-                    text = { Text(text = "Do you really want to delete the Story?")},
-                    title = { Text(text = "Delete Story")},
-                    icon = { Icon(painter = painterResource(id = R.drawable.delete), contentDescription = "")}
+                    confirmButton = {
+                        TextButton(onClick = {
+                            navController.navigate(HomeScreen); SaveManager.deleteStory(
+                            id
+                        )
+                        }) {
+                            Text(text = stringResource(id = R.string.confirm))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { isDeleting = false }) {
+                            Text(text = stringResource(id = R.string.dismiss))
+                        }
+                    },
+                    text = { Text(text = stringResource(R.string.confirmation_delete)) },
+                    title = { Text(text = stringResource(R.string.delete_story)) },
+                    icon = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.delete),
+                            contentDescription = ""
+                        )
+                    }
                 )
             }
             val contentModifier = Modifier
@@ -384,7 +419,6 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                 if (!requestOngoing && paramId == -1) {
                     requestOngoing = true
                     SaveManager.getNewId { newId ->
-                        id = newId
                         AiCore.action(
                             "Start the story with the following places and theme: $prompt " +
                                     "and with the following language: ${Locale.current}",
@@ -399,8 +433,9 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                         title = response.getString("title"),
                                         parts = mutableStateListOf(story)
                                     )
+                                    title = history.title
                                     lastElement = story
-                                    SaveManager.saveStory(history, id)
+                                    SaveManager.saveStory(history, newId)
                                 } else {
                                     val story = StoryPart(
                                         role = "Gemini",
@@ -412,6 +447,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                     lastElement = story
                                 }
                                 requestOngoing = false
+                                id = newId
                             }
                         )
                     }
@@ -421,6 +457,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                     SaveManager.loadStory(id) { newHistory ->
                         history = newHistory
                         lastElement = history.parts.last()
+                        title = newHistory.title
                         requestOngoing = false
                     }
                 }
@@ -435,7 +472,6 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                         state = listState,
                         userScrollEnabled = true
                     ) {
-                        title = history.title
                         for (element in history.parts) {
                             item {
                                 TextList(element = element, isEnded = history.isEnded)

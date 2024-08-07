@@ -34,4 +34,20 @@
     <string name="open_menu">Open Menu</string>
     <string name="deactivate_conversation">Deactivate conversation</string>
     <string name="activate_conversation">Activate conversation</string>
+    <string name="mic_usage_desc">The microphone is used for a more immersive experience. The app can read the story to you and then you can respond with your voice. Your voice is then transcribed on the device and then deleted.</string>
+    <string name="permission_request">Permission Request</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="confirm">Confirm</string>
+    <string name="story_imported">Story imported</string>
+    <string name="error_importing_story">Error importing Story</string>
+    <string name="share">Share</string>
+    <string name="change_title">Change Title</string>
+    <string name="delete">Delete</string>
+    <string name="history">History</string>
+    <string name="settings">Settings</string>
+    <string name="missing_permission">Missing Permission</string>
+    <string name="mic_ask_again">To continue you need to give this app permission for accessing the microphone.</string>
+    <string name="edit_title">Edit Title</string>
+    <string name="confirmation_delete">Do you really want to delete the Story?</string>
+    <string name="delete_story">Delete Story</string>
 </resources>

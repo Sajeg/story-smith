@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
@@ -87,7 +88,7 @@ class MainActivity : ComponentActivity() {
                                             requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                         }
                                     }) {
-                                        Text(text = "Confirm")
+                                        Text(text = stringResource(R.string.confirm))
                                     }
                                 },
                                 dismissButton = {
@@ -99,17 +100,15 @@ class MainActivity : ComponentActivity() {
                                         )
                                         askForMicPermission = false
                                     }) {
-                                        Text(text = "Dismiss")
+                                        Text(text = stringResource(R.string.dismiss))
                                     }
                                 },
                                 title = {
-                                    Text(text = "Permission Request")
+                                    Text(text = stringResource(R.string.permission_request))
                                 },
                                 text = {
                                     Text(
-                                        text = "The microphone is used for a more immersive experience. " +
-                                                "The app can read the story to you and then you can respond with your voice. " +
-                                                "Your voice is then transcribed on the device and then deleted."
+                                        text = stringResource(R.string.mic_usage_desc)
                                     )
                                 },
                                 icon = {
@@ -141,12 +140,12 @@ class MainActivity : ComponentActivity() {
                 try {
                     history = ShareChat.importChat(this, uri)!!
                     Toast.makeText(
-                        this, "Story imported",
+                        this, getString(R.string.story_imported),
                         Toast.LENGTH_SHORT
                     ).show()
                 } catch (e: Exception) {
                     Toast.makeText(
-                        this, "Error importing Story",
+                        this, getString(R.string.error_importing_story),
                         Toast.LENGTH_LONG
                     ).show()
                     Log.e("ImportChat", "Chat import failed with: $e")
