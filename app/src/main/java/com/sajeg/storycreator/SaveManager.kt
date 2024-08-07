@@ -18,7 +18,6 @@ import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import java.time.LocalDate
 
 
 object SaveManager {
@@ -42,11 +41,10 @@ object SaveManager {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val storyDao = db!!.storyDao()
-                val date = LocalDate.now()
                 val story = Story(
                     id = id,
                     title = data.title,
-                    date = date.toString(),
+                    time = System.currentTimeMillis()/1000,
                     content = buildJsonArray {
                         for (part in data.parts) {
                             add(part.toJsonElement())

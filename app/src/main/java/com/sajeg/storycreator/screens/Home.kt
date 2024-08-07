@@ -1,19 +1,24 @@
 package com.sajeg.storycreator.screens
 
 import android.annotation.SuppressLint
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -26,11 +31,11 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -40,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,6 +66,8 @@ fun Home(navController: NavController) {
     val title by remember { mutableStateOf("Story Smith") }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
+    var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
+    var isRunning by remember { mutableStateOf(false) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -73,8 +81,6 @@ fun Home(navController: NavController) {
             ModalDrawerSheet {
                 Text(text = "History", modifier = Modifier.padding(16.dp), fontSize = 20.sp)
                 HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
-                var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
-                var isRunning by remember { mutableStateOf(false) }
                 LazyColumn {
                     if (stories == null && !isRunning) {
                         isRunning = true
@@ -151,15 +157,6 @@ fun Home(navController: NavController) {
             ) {
                 val element = StoryPart(role = "Initializer", content = "")
                 var enableSelection by remember { mutableStateOf(true) }
-                val places: Array<String> = arrayOf(
-                    stringResource(R.string.cyberpunk),
-                    stringResource(R.string.space),
-                    stringResource(R.string.wild_western),
-                    stringResource(R.string.city),
-                    stringResource(R.string.countryside),
-                    stringResource(R.string.sea),
-                    stringResource(R.string.fairyland)
-                )
                 val ideas: Array<String> = arrayOf(
                     stringResource(R.string.outlaws),
                     stringResource(R.string.robots),
@@ -177,9 +174,14 @@ fun Home(navController: NavController) {
                     stringResource(R.string.magicians),
                     stringResource(R.string.superheros),
                     stringResource(R.string.aliens),
+                    stringResource(R.string.cyberpunk),
+                    stringResource(R.string.space),
+                    stringResource(R.string.wild_western),
+                    stringResource(R.string.city),
+                    stringResource(R.string.countryside),
+                    stringResource(R.string.sea),
+                    stringResource(R.string.fairyland)
                 )
-                val selectedIdeas = remember { mutableStateListOf<String>() }
-                val selectedPlaces = remember { mutableStateListOf<String>() }
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -190,16 +192,73 @@ fun Home(navController: NavController) {
                         modifier = Modifier
                             .weight(1f)
                             .padding(top = 60.dp),
-                        verticalArrangement = Arrangement.Center
+                        verticalArrangement = Arrangement.Bottom
                     ) {
+                        val now = System.currentTimeMillis() / 1000
+                        if (stories != null) {
+                            if (stories!!.size > 2) {
+                                for (i in 0..2) {
+                                    val story = stories!![2-i]
+                                    val passedTime = now - story.time
+
+                                    Surface(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(15.dp)
+                                            .clickable {
+                                                navController.navigate(
+                                                    ChatScreen(
+                                                        "",
+                                                        story.id
+                                                    )
+                                                )
+                                            },
+                                        shape = RoundedCornerShape(20.dp),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            Brush.linearGradient(colors = gradientColors)
+                                        ),
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .padding(horizontal = 30.dp)
+                                                .padding(top = 20.dp, bottom = 10.dp)
+                                        ) {
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                            ) {
+                                                Text(text = story.title, fontSize = 20.sp)
+                                                Row(
+                                                    horizontalArrangement = Arrangement.End,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(top = 5.dp)
+                                                ) {
+                                                    Text(
+                                                        text = formatTime(passedTime),
+                                                        fontStyle = FontStyle.Italic,
+                                                        fontSize = 15.sp,
+                                                        textAlign = TextAlign.End
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                    LazyRow {
-                        for (place in places) {
+
+                    LazyRow(
+                        modifier = Modifier.padding(horizontal = 10.dp)
+                    ) {
+                        for (idea in ideas) {
                             item {
                                 SuggestionChip(
                                     modifier = Modifier.padding(5.dp),
-                                    onClick = { /*TODO*/ },
-                                    label = { Text(text = place) }
+                                    onClick = { navController.navigate(ChatScreen(idea)) },
+                                    label = { Text(text = idea) }
                                 )
                             }
                         }
@@ -211,12 +270,27 @@ fun Home(navController: NavController) {
                         onTextSubmitted = {
                             enableSelection = false
                             navController.navigate(
-                                ChatScreen("$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}")
+                                ChatScreen(it)
                             )
                         }
                     )
                 }
             }
         }
+    }
+}
+
+fun formatTime(time: Long): String {
+    val minutes = time / 60
+    val hours = minutes / 60
+    val days = hours / 24
+    val weeks = days / 7
+
+    return when {
+        weeks > 0 -> "$weeks weeks ago"
+        days > 0 -> "$days days ago"
+        hours > 0 -> "$hours hours ago"
+        minutes > 5 -> "$minutes minutes ago"
+        else -> "now"
     }
 }

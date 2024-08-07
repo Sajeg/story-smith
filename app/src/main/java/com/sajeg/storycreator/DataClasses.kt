@@ -91,5 +91,6 @@ data class StoryPart(
 
 data class StoryTitle(
     val id: Int,
-    val title: String
+    val title: String,
+    val time: Long
 )
