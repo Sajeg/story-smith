@@ -14,10 +14,13 @@ import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
@@ -348,6 +351,10 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                 )
             }
         ) { innerPadding ->
+            val contentModifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .windowInsetsPadding(WindowInsets.ime)
             if (isEditing) {
                 var newTitle by remember { mutableStateOf("") }
                 AlertDialog(
@@ -403,12 +410,9 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                     }
                 )
             }
-            val contentModifier = Modifier
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
             if (lastElement.isPlaceholder()) {
                 Column(
-                    modifier = Modifier
+                    modifier = contentModifier
                         .padding(innerPadding)
                         .fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally,

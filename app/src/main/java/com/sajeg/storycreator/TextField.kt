@@ -3,17 +3,14 @@ package com.sajeg.storycreator
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.outlined.Send
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
@@ -29,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -100,71 +98,65 @@ fun EnterText(
                 }
             }
         }
-        Row(
-            modifier = Modifier
-                .padding(horizontal = 15.dp)
-                .padding(top = 5.dp, bottom = 15.dp)
-                .safeDrawingPadding(),
-        ) {
-            TextField(
-                value = value,
-                onValueChange = { value = it },
-                label = {
-                    if (lastElement != null) {
-                        if (lastElement.isInitializer()) {
-                            Text(text = stringResource(R.string.what_should_the_story_be_about))
-                        } else {
-                            Text(stringResource(R.string.what_do_you_want_to_do))
-                        }
+        TextField(
+            value = value,
+            onValueChange = { value = it },
+            placeholder = {
+                if (lastElement != null) {
+                    if (lastElement.isInitializer()) {
+                        Text(text = stringResource(R.string.what_should_the_story_be_about))
                     } else {
                         Text(stringResource(R.string.what_do_you_want_to_do))
                     }
-                },
-                shape = MaterialTheme.shapes.extraLarge,
-                singleLine = true,
-                enabled = enableInput,
-                keyboardActions = KeyboardActions(onDone = {
-                    focusManager.clearFocus()
-                    if (value != "" && !lastElement?.isInitializer()!!) {
-                        onTextSubmitted(value)
-                    } else if (lastElement?.isInitializer()!!) {
-                        onTextSubmitted(value)
-                    }
-                    value = ""
+                } else {
+                    Text(stringResource(R.string.what_do_you_want_to_do))
                 }
-                ),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
-                ),
-                modifier = Modifier
-                    .padding(end = 10.dp)
-                    .weight(0.1f)
+            },
+            shape = MaterialTheme.shapes.extraLarge,
+            singleLine = true,
+            enabled = enableInput,
+            keyboardActions = KeyboardActions(onDone = {
+                focusManager.clearFocus()
+                if (value != "" && !lastElement?.isInitializer()!!) {
+                    onTextSubmitted(value)
+                } else if (lastElement?.isInitializer()!!) {
+                    onTextSubmitted(value)
+                }
+                value = ""
+            }
+            ),
+            colors = TextFieldDefaults.colors(
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent
+            ),
+            modifier = Modifier
+                .padding(horizontal = 15.dp)
+                .padding(top = 5.dp, bottom = 15.dp)
+                .height(52.dp)
+                .safeDrawingPadding()
+                .fillMaxWidth(),
+            trailingIcon = {
+                IconButton(
+                    onClick = {
+                        focusManager.clearFocus()
+                        if (value != "" && !lastElement?.isInitializer()!!) {
+                            onTextSubmitted(value)
+                        } else if (lastElement?.isInitializer()!!) {
+                            onTextSubmitted(value)
+                        }
+                        value = ""
+                    },
+                    enabled = enableInput,
+                    content = {
+                        Icon(
+                            painter = painterResource(id = R.drawable.send),
+                            contentDescription = "Send"
+                        )
+                    })
+            }
 
-            )
-            IconButton(
-                onClick = {
-                    focusManager.clearFocus()
-                    if (value != "" && !lastElement?.isInitializer()!!) {
-                        onTextSubmitted(value)
-                    } else if (lastElement?.isInitializer()!!) {
-                        onTextSubmitted(value)
-                    }
-                    value = ""
-                },
-                enabled = enableInput,
-                colors = IconButtonDefaults.filledIconButtonColors(),
-                content = {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.Send,
-                        contentDescription = "Send",
-                        modifier = Modifier.size(34.dp),
-                    )
-                },
-                modifier = Modifier.size(TextFieldDefaults.MinHeight),
+        )
 
-                )
-        }
     }
 }
