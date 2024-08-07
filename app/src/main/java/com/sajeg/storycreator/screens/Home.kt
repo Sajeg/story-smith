@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -70,27 +72,43 @@ fun Home(navController: NavController) {
         gesturesEnabled = true,
         drawerContent = {
             ModalDrawerSheet {
-                Text(text = "History", modifier = Modifier.padding(16.dp))
-                HorizontalDivider()
+                Text(text = "History", modifier = Modifier.padding(16.dp), fontSize = 20.sp)
+                HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
                 var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
                 var isRunning by remember { mutableStateOf(false) }
-                if (stories == null && !isRunning) {
-                    isRunning = true
-                    SaveManager.getStories { stories = it }
-                } else if (stories != null) {
-                    for (story in stories!!) {
-                        NavigationDrawerItem(
-                            label = { Text(text = story.title) },
-                            selected = false,
-                            onClick = {
-                                navController.navigate(
-                                    ChatScreen(
-                                        "",
-                                        story.id
-                                    )
+                LazyColumn {
+                    if (stories == null && !isRunning) {
+                        isRunning = true
+                        SaveManager.getStories { stories = it }
+                    } else if (stories != null) {
+                        for (story in stories!!) {
+                            item {
+                                NavigationDrawerItem(
+                                    label = {
+                                        Row {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.book),
+                                                contentDescription = ""
+                                            )
+                                            Text(
+                                                text = story.title,
+                                                modifier = Modifier.padding(start = 8.dp)
+                                            )
+                                        }
+                                    },
+                                    selected = false,
+                                    modifier = Modifier.padding(horizontal = 4.dp),
+                                    onClick = {
+                                        navController.navigate(
+                                            ChatScreen(
+                                                "",
+                                                story.id
+                                            )
+                                        )
+                                    }
                                 )
                             }
-                        )
+                        }
                     }
                 }
             }
