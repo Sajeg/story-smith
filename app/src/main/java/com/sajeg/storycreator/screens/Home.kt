@@ -4,24 +4,19 @@ import android.annotation.SuppressLint
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -30,6 +25,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -196,105 +192,29 @@ fun Home(navController: NavController) {
                             .padding(top = 60.dp),
                         verticalArrangement = Arrangement.Center
                     ) {
-                        if (enableSelection) {
-                            val flowRowModifiers = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 10.dp)
-                                .padding(bottom = 15.dp)
-                            //item {
-                            Card(
-                                modifier = Modifier.padding(horizontal = 15.dp, vertical = 50.dp),
-                            ) {
-                                Text(
-                                    modifier = Modifier
-                                        .padding(horizontal = 15.dp)
-                                        .padding(top = 30.dp)
-                                        .fillMaxWidth(),
-                                    text = stringResource(R.string.where_should_the_story_take_place),
-                                    fontSize = 22.sp,
-                                    lineHeight = 28.sp,
-                                    textAlign = TextAlign.Center
+                    }
+                    LazyRow {
+                        for (place in places) {
+                            item {
+                                SuggestionChip(
+                                    modifier = Modifier.padding(5.dp),
+                                    onClick = { /*TODO*/ },
+                                    label = { Text(text = place) }
                                 )
-                                FlowRow(
-                                    modifier = flowRowModifiers,
-                                    Arrangement.SpaceBetween
-                                ) {
-                                    for (i in 0..places.lastIndex) {
-                                        val place = places[i]
-                                        FilterChip(
-                                            modifier = Modifier.padding(horizontal = 5.dp),
-                                            selected = selectedIdeas.contains(place),
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                                selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                            ),
-                                            onClick = {
-                                                if (selectedIdeas.contains(place)) {
-                                                    selectedIdeas.remove(place)
-                                                } else {
-                                                    selectedIdeas.add(place)
-                                                }
-                                            },
-                                            label = { Text(text = place) },
-                                        )
-                                    }
-                                }
-                            }
-                            Card(
-                                modifier = Modifier
-                                    .padding(horizontal = 15.dp)
-                                    .padding(bottom = 50.dp),
-                                colors = CardDefaults.cardColors(MaterialTheme.colorScheme.secondaryContainer)
-                            ) {
-                                Text(
-                                    modifier = Modifier
-                                        .padding(horizontal = 15.dp)
-                                        .padding(top = 30.dp)
-                                        .fillMaxWidth(),
-                                    text = stringResource(R.string.what_should_the_story_be_about),
-                                    fontSize = 22.sp,
-                                    lineHeight = 28.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                                FlowRow(
-                                    modifier = flowRowModifiers,
-                                    Arrangement.SpaceBetween
-                                ) {
-                                    for (i in 0..ideas.lastIndex) {
-                                        val idea = ideas[i]
-                                        FilterChip(
-                                            modifier = Modifier.padding(horizontal = 5.dp),
-                                            selected = selectedIdeas.contains(idea),
-                                            colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = MaterialTheme.colorScheme.tertiary,
-                                                selectedLabelColor = MaterialTheme.colorScheme.onTertiary
-                                            ),
-                                            onClick = {
-                                                if (selectedIdeas.contains(idea)) {
-                                                    selectedIdeas.remove(idea)
-                                                } else {
-                                                    selectedIdeas.add(idea)
-                                                }
-                                            },
-                                            label = { Text(text = idea) }
-                                        )
-                                    }
-                                }
                             }
                         }
                     }
-                    if (enableSelection) {
-                        EnterText(
-                            lastElement = element,
-                            isEnded = history.isEnded,
-                            navController = navController,
-                            onTextSubmitted = {
-                                enableSelection = false
-                                navController.navigate(
-                                    ChatScreen("$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}")
-                                )
-                            })
-                    }
+                    EnterText(
+                        lastElement = element,
+                        isEnded = history.isEnded,
+                        navController = navController,
+                        onTextSubmitted = {
+                            enableSelection = false
+                            navController.navigate(
+                                ChatScreen("$it, ${selectedIdeas.joinToString()}, ${selectedPlaces.joinToString()}")
+                            )
+                        }
+                    )
                 }
             }
         }
