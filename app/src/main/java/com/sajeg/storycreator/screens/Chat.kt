@@ -38,6 +38,7 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TextField
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -58,14 +59,17 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.sajeg.storycreator.AiCore
 import com.sajeg.storycreator.ChatScreen
 import com.sajeg.storycreator.EnterText
 import com.sajeg.storycreator.History
+import com.sajeg.storycreator.HomeScreen
 import com.sajeg.storycreator.R
 import com.sajeg.storycreator.SaveManager
+import com.sajeg.storycreator.ShareChat
 import com.sajeg.storycreator.StoryActionRecognitionListener
 import com.sajeg.storycreator.StoryPart
 import com.sajeg.storycreator.StoryTitle
@@ -87,6 +91,8 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
     var lastElement by remember { mutableStateOf(StoryPart("Placeholder", "")) }
     var requestOngoing by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var isEditing by remember { mutableStateOf(false) }
+    var isDeleting by remember { mutableStateOf(false) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -102,40 +108,84 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                 NavigationDrawerItem(
                     label = {
                         Row {
-                            Icon(
-                                painter = painterResource(id = R.drawable.share),
-                                contentDescription = ""
-                            )
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.share),
+//                                contentDescription = ""
+//                            )
                             Text(text = "Share", modifier = Modifier.padding(start = 16.dp))
                         }
                     },
                     selected = false,
                     modifier = Modifier.padding(horizontal = 16.dp),
-                    onClick = { /*TODO*/ }
+                    onClick = { ShareChat.exportChat(context, history)
+                        coroutineScope.launch {
+                            drawerState.apply { if (isClosed) open() else close() }
+                        }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = {
+                        Row {
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.share),
+//                                contentDescription = ""
+//                            )
+                            Text(text = "Change Title", modifier = Modifier.padding(start = 16.dp))
+                        }
+                    },
+                    selected = false,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    onClick = { isEditing != isEditing
+                        coroutineScope.launch {
+                            drawerState.apply { if (isClosed) open() else close() }
+                        }
+                    }
+                )
+                NavigationDrawerItem(
+                    label = {
+                        Row {
+//                            Icon(
+//                                painter = painterResource(id = R.drawable.share),
+//                                contentDescription = ""
+//                            )
+                            Text(text = "Delete", modifier = Modifier.padding(start = 16.dp))
+                        }
+                    },
+                    selected = false,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                    onClick = { isDeleting != isDeleting
+                        coroutineScope.launch {
+                            drawerState.apply { if (isClosed) open() else close() }
+                        }
+                    }
                 )
 
                 Text(text = "History", modifier = Modifier.padding(16.dp))
                 HorizontalDivider()
                 var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
                 var isRunning by remember { mutableStateOf(false) }
-                if (stories == null && !isRunning) {
-                    isRunning = true
-                    SaveManager.getStories { stories = it }
-                } else if (stories != null) {
-                    for (story in stories!!) {
-                        NavigationDrawerItem(
-                            label = { Text(text = story.title) },
-                            selected = story.id == paramId,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            onClick = {
-                                navController.navigate(
-                                    ChatScreen(
-                                        "",
-                                        story.id
-                                    )
+                LazyColumn {
+                    if (stories == null && !isRunning) {
+                        isRunning = true
+                        SaveManager.getStories { stories = it }
+                    } else if (stories != null) {
+                        for (story in stories!!) {
+                            item {
+                                NavigationDrawerItem(
+                                    label = { Text(text = story.title) },
+                                    selected = story.id == paramId,
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    onClick = {
+                                        navController.navigate(
+                                            ChatScreen(
+                                                "",
+                                                story.id
+                                            )
+                                        )
+                                    }
                                 )
                             }
-                        )
+                        }
                     }
                 }
             }
@@ -166,16 +216,6 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                     contentDescription = "Open drawer"
                                 )
                             }
-//                            IconButton(
-//                                onClick = { ShareChat.exportChat(context, history) },
-//                                content = {
-//                                    Icon(
-//                                        imageVector = Icons.Outlined.Share,
-//                                        contentDescription = stringResource(R.string.open_menu),
-//                                        tint = MaterialTheme.colorScheme.onSurface
-//                                    )
-//                                }
-//                            )
                         }
                     },
                     actions = {
@@ -264,6 +304,31 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                 )
             }
         ) { innerPadding ->
+            if (isEditing) {
+                var newTitle by remember { mutableStateOf("") }
+                Dialog(onDismissRequest = { isEditing = false }) {
+                    TextField(value = newTitle, onValueChange = {newTitle = it})
+                    Row (
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.End
+                    ){
+                        TextButton(
+                            onClick = { SaveManager.changeTitle(id, newTitle) }) {
+                            Text(text = "Dismiss")
+                        }
+                        TextButton(
+                            onClick = { SaveManager.changeTitle(id, newTitle) }) {
+                            Text(text = "Confirm")
+                        }
+                    }
+                }
+            }
+            if (isDeleting) {
+                AlertDialog(
+                    onDismissRequest = { isDeleting = false },
+                    confirmButton = { SaveManager.deleteStory(id); navController.navigate(HomeScreen) }
+                )
+            }
             val contentModifier = Modifier
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)

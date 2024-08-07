@@ -98,6 +98,26 @@ object SaveManager {
         }
     }
 
+    fun changeTitle(id: Int, newTitle: String) {
+        CoroutineScope(Dispatchers.IO).launch {
+            loadStory(id) { story ->
+                story.title = newTitle
+                saveStory(
+                    story,
+                    id
+                )
+            }
+        }
+    }
+
+    fun deleteStory(id: Int) {
+        CoroutineScope(Dispatchers.IO).launch {
+            val storyDao = db!!.storyDao()
+            val story = storyDao.getStory(id)
+            storyDao.deleteStory(story)
+        }
+    }
+
     // Preferences DataStore
     fun readString(value: String, context: Context, onResponse: (data: String) -> Unit) {
         val valueKey = stringPreferencesKey(value)
