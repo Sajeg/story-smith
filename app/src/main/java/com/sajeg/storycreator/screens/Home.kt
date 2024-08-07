@@ -2,6 +2,7 @@ package com.sajeg.storycreator.screens
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -41,11 +42,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -56,8 +62,10 @@ import com.sajeg.storycreator.R
 import com.sajeg.storycreator.SaveManager
 import com.sajeg.storycreator.StoryPart
 import com.sajeg.storycreator.StoryTitle
+import com.sajeg.storycreator.getIdeas
 import com.sajeg.storycreator.history
 import kotlinx.coroutines.launch
+import kotlin.math.sqrt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -68,12 +76,12 @@ fun Home(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
     var isRunning by remember { mutableStateOf(false) }
+    val ideas = getIdeas(count = 5)
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.tertiary
     )
-
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -151,37 +159,12 @@ fun Home(navController: NavController) {
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
                 .windowInsetsPadding(WindowInsets.ime)
-
+            CreateBackground()
             Column(
                 modifier = contentModifier
             ) {
                 val element = StoryPart(role = "Initializer", content = "")
                 var enableSelection by remember { mutableStateOf(true) }
-                val ideas: Array<String> = arrayOf(
-                    stringResource(R.string.outlaws),
-                    stringResource(R.string.robots),
-                    stringResource(R.string.fairies),
-                    stringResource(R.string.monsters),
-                    stringResource(R.string.princesses),
-                    stringResource(R.string.knights),
-                    stringResource(R.string.unicorns),
-                    stringResource(R.string.vampires),
-                    stringResource(R.string.golems),
-                    stringResource(R.string.pirates),
-                    stringResource(R.string.slimes),
-                    stringResource(R.string.vikings),
-                    stringResource(R.string.dragons),
-                    stringResource(R.string.magicians),
-                    stringResource(R.string.superheros),
-                    stringResource(R.string.aliens),
-                    stringResource(R.string.cyberpunk),
-                    stringResource(R.string.space),
-                    stringResource(R.string.wild_western),
-                    stringResource(R.string.city),
-                    stringResource(R.string.countryside),
-                    stringResource(R.string.sea),
-                    stringResource(R.string.fairyland)
-                )
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -198,7 +181,7 @@ fun Home(navController: NavController) {
                         if (stories != null) {
                             if (stories!!.size > 2) {
                                 for (i in 0..2) {
-                                    val story = stories!![2-i]
+                                    val story = stories!![2 - i]
                                     val passedTime = now - story.time
 
                                     Surface(
@@ -292,5 +275,86 @@ fun formatTime(time: Long): String {
         hours > 0 -> "$hours hours ago"
         minutes > 5 -> "$minutes minutes ago"
         else -> "now"
+    }
+}
+
+@Composable
+fun CreateBackground() {
+    val height = LocalConfiguration.current.screenHeightDp.toFloat()
+    val width = LocalConfiguration.current.screenWidthDp.toFloat()
+    val text = "The butterfly"
+    val density = LocalDensity.current
+    val colors = MaterialTheme.colorScheme.onBackground
+    val fontSize = 15.sp
+//    Box(modifier = Modifier.rotate(0f)) {
+//        Text(
+//            text = "The iridescent dragonfly hovered, a jewel suspended in the amber light filtering through the canopy, below, a labyrinth of ferns unfurled, their fronds whispering secrets to the wind, a solitary deer emerged from the mist, its eyes twin pools of ancient wisdom, the forest held its breath, a hushed cathedral of green, far above, a hawk circled, its keen gaze scanning the emerald expanse, a flash of crimson disrupted the tranquility as a squirrel darted up a towering oak, its bushy tail a blur of defiance, a family of badgers, their fur matted with dew, emerged from their burrow, their noses twitching with anticipation, in a secluded glade, a crystalline stream meandered, its surface rippled by the gentle caress of a breeze, a solitary frog perched on a lily pad, its bulging eyes reflecting the world above, the sweet scent of wildflowers filled the air, a heady perfume that lured a butterfly from its slumber, as the sun began its descent, casting long shadows across the forest floor, a symphony of chirps and rustles erupted, owls hooted their nocturnal greeting, their haunting melodies echoing through the trees, a lone wolf emerged from the twilight, its silhouette a dark specter against the fading light, the forest was a world unto itself, a realm of magic and mystery, it cradled life in all its forms, a sanctuary for the wild and free, as darkness enveloped the land, the forest awakened to a different rhythm, a world of shadows and secrets, the old oak stood sentinel, its gnarled branches reaching towards the starlit sky, it had witnessed centuries of change, its heartwood a repository of memories, with the first light of dawn, the forest would stir once more, its inhabitants emerging to greet a new day, and so, the cycle of life continued, an endless tapestry woven with threads of green and gold.",
+//            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+//        )
+//    }
+    val textMeasurer = rememberTextMeasurer()
+    val rotationAngle: Float = 45f
+    val textStyle = TextStyle(fontSize = 24.sp, color = colors)
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val canvasWidth = size.width
+            val canvasHeight = size.height
+            val textLayoutResult = textMeasurer.measure(text, textStyle)
+            val textSize = textLayoutResult.size
+
+            val diagonal = sqrt(canvasWidth * canvasWidth + canvasHeight * canvasHeight)
+
+            val repeatX = (diagonal / textSize.width).toInt() + 1
+            val repeatY = (diagonal / textSize.height).toInt() + 1
+//            rotate(rotationAngle) {
+//                        drawText(
+//                            textMeasurer = textMeasurer,
+//                            text = text,
+//                            style = textStyle,
+//                            topLeft = Offset(
+//                                x = -1000f,
+//                                y = 180f
+//                            )
+//                        )
+//                    }
+//            rotate(rotationAngle) {
+//                drawText(
+//                    textMeasurer = textMeasurer,
+//                    text = text,
+//                    style = textStyle,
+//                    topLeft = Offset(
+//                        x = -1000f,
+//                        y = 2000f
+//                    )
+//                )
+//            }
+//            rotate(rotationAngle) {
+//                drawText(
+//                    textMeasurer = textMeasurer,
+//                    text = text,
+//                    style = textStyle,
+//                    topLeft = Offset(
+//                        x = -1000f,
+//                        y = 2000f
+//                    )
+//                )
+//            }
+            for (i in 0..repeatY) {
+                for (j in 0..repeatX) {
+                    rotate(rotationAngle) {
+                        drawText(
+                            textMeasurer = textMeasurer,
+                            text = text,
+                            style = textStyle,
+                            topLeft = Offset(
+                                x = j * textSize.width.toFloat(),
+                                y = i * textSize.height.toFloat()
+                            )
+                        )
+                    }
+                }
+            }
+        }
     }
 }
