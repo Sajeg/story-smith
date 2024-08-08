@@ -9,11 +9,13 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ChipColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -37,6 +39,7 @@ fun EnterText(
     lastElement: StoryPart?,
     isEnded: Boolean,
     navController: NavController,
+    colorOverride: ChipColors? = null,
     onTextSubmitted: (text: String) -> Unit,
 ) {
     var value by remember { mutableStateOf("") }
@@ -92,7 +95,8 @@ fun EnterText(
                             },
                             label = {
                                 Text(text = idea, maxLines = 1)
-                            }
+                            },
+                            colors = colorOverride ?: SuggestionChipDefaults.suggestionChipColors()
                         )
                     }
                 }

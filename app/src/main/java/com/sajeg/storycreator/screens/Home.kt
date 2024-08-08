@@ -1,8 +1,8 @@
 package com.sajeg.storycreator.screens
 
 import android.annotation.SuppressLint
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
@@ -31,27 +31,25 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -65,7 +63,6 @@ import com.sajeg.storycreator.StoryTitle
 import com.sajeg.storycreator.getIdeas
 import com.sajeg.storycreator.history
 import kotlinx.coroutines.launch
-import kotlin.math.sqrt
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -76,7 +73,7 @@ fun Home(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
     var isRunning by remember { mutableStateOf(false) }
-    val ideas = getIdeas(count = 5)
+    val ideas = getIdeas(count = 3)
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -187,7 +184,7 @@ fun Home(navController: NavController) {
                                     Surface(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .padding(15.dp)
+                                            .padding(vertical = 15.dp, horizontal = 10.dp)
                                             .clickable {
                                                 navController.navigate(
                                                     ChatScreen(
@@ -229,27 +226,33 @@ fun Home(navController: NavController) {
                                         }
                                     }
                                 }
+                            } else {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 15.dp, horizontal = 10.dp),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = BorderStroke(
+                                        1.dp,
+                                        Brush.linearGradient(colors = gradientColors)
+                                    ),
+                                ) {
+                                    Text(
+                                        modifier = Modifier
+                                            .padding(20.dp),
+                                        text = "Start by choosing a suggestion or typing in the field below")
+                                }
                             }
                         }
                     }
-
-                    LazyRow(
-                        modifier = Modifier.padding(horizontal = 10.dp)
-                    ) {
-                        for (idea in ideas) {
-                            item {
-                                SuggestionChip(
-                                    modifier = Modifier.padding(5.dp),
-                                    onClick = { navController.navigate(ChatScreen(idea)) },
-                                    label = { Text(text = idea) }
-                                )
-                            }
-                        }
-                    }
+                    element.suggestions = ideas.toTypedArray()
                     EnterText(
                         lastElement = element,
                         isEnded = history.isEnded,
                         navController = navController,
+                        colorOverride = SuggestionChipDefaults.suggestionChipColors(
+                            containerColor = MaterialTheme.colorScheme.background
+                        ),
                         onTextSubmitted = {
                             enableSelection = false
                             navController.navigate(
@@ -280,81 +283,36 @@ fun formatTime(time: Long): String {
 
 @Composable
 fun CreateBackground() {
-    val height = LocalConfiguration.current.screenHeightDp.toFloat()
-    val width = LocalConfiguration.current.screenWidthDp.toFloat()
-    val text = "The butterfly"
-    val density = LocalDensity.current
-    val colors = MaterialTheme.colorScheme.onBackground
-    val fontSize = 15.sp
-//    Box(modifier = Modifier.rotate(0f)) {
-//        Text(
-//            text = "The iridescent dragonfly hovered, a jewel suspended in the amber light filtering through the canopy, below, a labyrinth of ferns unfurled, their fronds whispering secrets to the wind, a solitary deer emerged from the mist, its eyes twin pools of ancient wisdom, the forest held its breath, a hushed cathedral of green, far above, a hawk circled, its keen gaze scanning the emerald expanse, a flash of crimson disrupted the tranquility as a squirrel darted up a towering oak, its bushy tail a blur of defiance, a family of badgers, their fur matted with dew, emerged from their burrow, their noses twitching with anticipation, in a secluded glade, a crystalline stream meandered, its surface rippled by the gentle caress of a breeze, a solitary frog perched on a lily pad, its bulging eyes reflecting the world above, the sweet scent of wildflowers filled the air, a heady perfume that lured a butterfly from its slumber, as the sun began its descent, casting long shadows across the forest floor, a symphony of chirps and rustles erupted, owls hooted their nocturnal greeting, their haunting melodies echoing through the trees, a lone wolf emerged from the twilight, its silhouette a dark specter against the fading light, the forest was a world unto itself, a realm of magic and mystery, it cradled life in all its forms, a sanctuary for the wild and free, as darkness enveloped the land, the forest awakened to a different rhythm, a world of shadows and secrets, the old oak stood sentinel, its gnarled branches reaching towards the starlit sky, it had witnessed centuries of change, its heartwood a repository of memories, with the first light of dawn, the forest would stir once more, its inhabitants emerging to greet a new day, and so, the cycle of life continued, an endless tapestry woven with threads of green and gold.",
-//            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
-//        )
-//    }
-    val textMeasurer = rememberTextMeasurer()
-    val rotationAngle: Float = 45f
-    val textStyle = TextStyle(fontSize = 24.sp, color = colors)
+    val screenHeight = LocalConfiguration.current.screenHeightDp.toFloat()
+    var text by remember { mutableStateOf("Story Smith ") }
+    var textHeight by remember { mutableIntStateOf(0) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Canvas(modifier = Modifier.fillMaxSize()) {
-            val canvasWidth = size.width
-            val canvasHeight = size.height
-            val textLayoutResult = textMeasurer.measure(text, textStyle)
-            val textSize = textLayoutResult.size
-
-            val diagonal = sqrt(canvasWidth * canvasWidth + canvasHeight * canvasHeight)
-
-            val repeatX = (diagonal / textSize.width).toInt() + 1
-            val repeatY = (diagonal / textSize.height).toInt() + 1
-//            rotate(rotationAngle) {
-//                        drawText(
-//                            textMeasurer = textMeasurer,
-//                            text = text,
-//                            style = textStyle,
-//                            topLeft = Offset(
-//                                x = -1000f,
-//                                y = 180f
-//                            )
-//                        )
-//                    }
-//            rotate(rotationAngle) {
-//                drawText(
-//                    textMeasurer = textMeasurer,
-//                    text = text,
-//                    style = textStyle,
-//                    topLeft = Offset(
-//                        x = -1000f,
-//                        y = 2000f
-//                    )
-//                )
-//            }
-//            rotate(rotationAngle) {
-//                drawText(
-//                    textMeasurer = textMeasurer,
-//                    text = text,
-//                    style = textStyle,
-//                    topLeft = Offset(
-//                        x = -1000f,
-//                        y = 2000f
-//                    )
-//                )
-//            }
-            for (i in 0..repeatY) {
-                for (j in 0..repeatX) {
-                    rotate(rotationAngle) {
-                        drawText(
-                            textMeasurer = textMeasurer,
-                            text = text,
-                            style = textStyle,
-                            topLeft = Offset(
-                                x = j * textSize.width.toFloat(),
-                                y = i * textSize.height.toFloat()
-                            )
-                        )
-                    }
-                }
+    if (text == "Story Smith ") {
+        SaveManager.getStories {
+            for (story in it) {
+                text += "${story.title} "
             }
+        }
+    }
+
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .offset(y = (100).dp)
+        .graphicsLayer {
+            rotationZ = 45f
+            scaleX = 2.5F
+            scaleY = 2.5F
+        }) {
+        Text(
+            modifier = Modifier.onGloballyPositioned { textHeight = it.size.height },
+            fontSize = 8.sp,
+            lineHeight = 12.sp,
+            text = text,
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
+        )
+        if (textHeight < screenHeight) {
+            Log.d("Background Render", "Not big enough")
+            text += text
         }
     }
 }
