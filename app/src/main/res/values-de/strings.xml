@@ -37,7 +37,7 @@
     <string name="activate_conversation">Aktiviere Konversation</string>
     <string name="mic_usage_desc">Das Mikrofon wird für ein noch inmmersiveres Erlebnis verwendet. Die App kann Ihnen die Geschichte vorlesen und Sie können dann mit Ihrer Stimme antworten. Ihre Stimme wird dann auf dem Gerät transkribiert und anschließend gelöscht.</string>
     <string name="permission_request">Berechtigung Benötigt</string>
-    <string name="dismiss">verwerfen</string>
+    <string name="dismiss">Verwerfen</string>
     <string name="confirm">Bestätigen</string>
     <string name="story_imported">Geschichte importiert</string>
     <string name="error_importing_story">Fehler beim importieren der Geschichte</string>
@@ -51,7 +51,7 @@
     <string name="edit_title">Title bearbeiten</string>
     <string name="confirmation_delete">Willst du die Geschichte wirklich löschen?</string>
     <string name="delete_story">Geschichte löschen</string>
-    <string name="start_tipp">Beginne, indem du eine der empfelungen auswählst oder anfängst zu schreiben.</string>
+    <string name="start_tipp">Beginne, indem du eine der empfehlungen auswählst oder anfängst zu schreiben.</string>
     <string name="weeks">Vor %1$s Wochen</string>
     <string name="days">Vor %1$s Tagen</string>
     <string name="hours">Vor %1$s Stunden</string>

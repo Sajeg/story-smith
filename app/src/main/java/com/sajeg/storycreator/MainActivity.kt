@@ -41,6 +41,7 @@ class MainActivity : ComponentActivity() {
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
         ) { permissionAccepted ->
+            Log.d("PermissionManager", permissionAccepted.toString())
             if (permissionAccepted) {
                 SaveManager.saveBoolean(
                     "micAllowed",
@@ -84,9 +85,7 @@ class MainActivity : ComponentActivity() {
                                 confirmButton = {
                                     TextButton(onClick = {
                                         askForMicPermission = false
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                            requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                        }
+                                        requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
                                     }) {
                                         Text(text = stringResource(R.string.confirm))
                                     }
@@ -130,6 +129,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        SpeechRecognition.initRecognition(this)
         if (intent.action == Intent.ACTION_SEND) {
             val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
@@ -152,5 +152,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        SpeechRecognition.destroy()
     }
 }

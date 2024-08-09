@@ -40,11 +40,12 @@ fun EnterText(
     isEnded: Boolean,
     navController: NavController,
     colorOverride: ChipColors? = null,
+    isActive: Boolean = true,
     onTextSubmitted: (text: String) -> Unit,
 ) {
     var value by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
-    var enableInput by remember { mutableStateOf(true) }
+    var enableInput by remember { mutableStateOf(isActive) }
 
     Column(
         modifier = Modifier.fillMaxWidth()

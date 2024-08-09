@@ -7,8 +7,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
-import android.speech.RecognizerIntent
-import android.speech.SpeechRecognizer
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
@@ -75,7 +73,7 @@ import com.sajeg.storycreator.HomeScreen
 import com.sajeg.storycreator.R
 import com.sajeg.storycreator.SaveManager
 import com.sajeg.storycreator.ShareChat
-import com.sajeg.storycreator.StoryActionRecognitionListener
+import com.sajeg.storycreator.SpeechRecognition
 import com.sajeg.storycreator.StoryPart
 import com.sajeg.storycreator.history
 import com.sajeg.storycreator.states.HistoryState
@@ -226,22 +224,20 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             var pressed by remember { mutableStateOf(false) }
                             IconButton(
                                 onClick = {
-                                    SaveManager.readBoolean("micAllowed", context) { micAllowed ->
-                                        if (micAllowed == null) {
-                                            return@readBoolean
-                                        }
-                                        if (readAloud && micAllowed) {
-                                            readAloud = false
-                                            tts.stop()
-                                            history.parts[history.parts.lastIndex].wasReadAloud =
-                                                false
-                                        } else if (micAllowed) {
-                                            readAloud = true
-                                        } else {
-                                            micPermission = false
-                                        }
-                                        pressed = true
+                                    micPermission = ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+
+                                    if (readAloud && micPermission) {
+                                        readAloud = false
+                                        tts.stop()
+                                        history.parts[history.parts.lastIndex].wasReadAloud =
+                                            false
+                                    } else if (micPermission) {
+                                        readAloud = true
                                     }
+                                    pressed = true
                                 },
                                 content = {
                                     if (readAloud) {
@@ -396,7 +392,9 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     title = history.title
                                     lastElement = story
                                     SaveManager.saveStory(history, newId) {
-                                        SaveManager.getStories { historyState = HistoryState.Success(it) }
+                                        SaveManager.getStories {
+                                            historyState = HistoryState.Success(it)
+                                        }
                                     }
                                 } else {
                                     val story = StoryPart(
@@ -470,41 +468,45 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         }
                         if (ttsFinished and readAloud) {
                             ttsFinished = false
-                            listenToUserInput(context)
+                            SpeechRecognition.startRecognition()
                         }
                     }
-                    EnterText(
-                        modifier = Modifier.weight(0.1f),
-                        lastElement = history.parts.lastOrNull(),
-                        isEnded = history.isEnded,
-                        navController = navController,
-                        onTextSubmitted = {
-                            history.parts.add(StoryPart("Sajeg", it))
-                            AiCore.action(
-                                it,
-                                responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                                    if (!error) {
-                                        val story = StoryPart(
-                                            role = "Gemini",
-                                            content = response!!.getString("story"),
-                                        )
-                                        story.parseSuggestions(response.getJSONArray("suggestions"))
-                                        history.parts.add(story)
-                                        SaveManager.saveStory(history, id) {}
-                                    } else {
-                                        history.title = "Error"
-                                        history.isEnded = true
-                                        history.parts.add(
-                                            StoryPart(
+                    if (readAloud) {
+                        // ToDo
+                    } else {
+                        EnterText(
+                            modifier = Modifier.weight(0.1f),
+                            lastElement = history.parts.lastOrNull(),
+                            isEnded = history.isEnded,
+                            navController = navController,
+                            onTextSubmitted = {
+                                history.parts.add(StoryPart("Sajeg", it))
+                                AiCore.action(
+                                    it,
+                                    responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+                                        if (!error) {
+                                            val story = StoryPart(
                                                 role = "Gemini",
-                                                content = "A error occurred: $errorDesc",
+                                                content = response!!.getString("story"),
                                             )
-                                        )
+                                            story.parseSuggestions(response.getJSONArray("suggestions"))
+                                            history.parts.add(story)
+                                            SaveManager.saveStory(history, id) {}
+                                        } else {
+                                            history.title = "Error"
+                                            history.isEnded = true
+                                            history.parts.add(
+                                                StoryPart(
+                                                    role = "Gemini",
+                                                    content = "A error occurred: $errorDesc",
+                                                )
+                                            )
+                                        }
                                     }
-                                }
-                            )
-                        }
-                    )
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -578,13 +580,21 @@ fun DisplayHistory(historyState: HistoryState, id: Int, navController: NavContro
             is HistoryState.Loading -> {
                 Log.d("HistoryState", "Changed to Loading")
                 item {
-                    NavigationDrawerItem(label = { Text(text = stringResource(R.string.loading), fontStyle = FontStyle.Italic) }, selected = false, onClick = {})
+                    NavigationDrawerItem(label = {
+                        Text(
+                            text = stringResource(R.string.loading),
+                            fontStyle = FontStyle.Italic
+                        )
+                    }, selected = false, onClick = {})
                 }
             }
 
             is HistoryState.Error -> {
                 item {
-                    NavigationDrawerItem(label = { Text(text = "Unknown error occurred")}, selected = false, onClick = {})
+                    NavigationDrawerItem(
+                        label = { Text(text = "Unknown error occurred") },
+                        selected = false,
+                        onClick = {})
                 }
             }
 
@@ -621,22 +631,4 @@ fun initTextToSpeech(context: Context): TextToSpeech {
         }
     }
     return tts
-}
-
-fun listenToUserInput(context: Context) {
-    Log.d("StorySmithSTT", "Start Listing")
-    val stt = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
-    val listener = StoryActionRecognitionListener()
-    val intent = Intent(RecognizerIntent.ACTION_VOICE_SEARCH_HANDS_FREE)
-    intent.putExtra(
-        RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-        RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
-    )
-    intent.putExtra(
-        RecognizerIntent.EXTRA_LANGUAGE,
-        Locale.current.language + "-" + Locale.current.region
-    )
-
-    stt.setRecognitionListener(listener)
-    stt.startListening(intent)
 }
