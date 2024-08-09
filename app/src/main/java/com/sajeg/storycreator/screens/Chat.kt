@@ -2,14 +2,12 @@ package com.sajeg.storycreator.screens
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,6 +21,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardColors
@@ -39,6 +38,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -75,7 +75,9 @@ import com.sajeg.storycreator.SaveManager
 import com.sajeg.storycreator.ShareChat
 import com.sajeg.storycreator.SpeechRecognition
 import com.sajeg.storycreator.StoryPart
+import com.sajeg.storycreator.TTS
 import com.sajeg.storycreator.history
+import com.sajeg.storycreator.states.ActionState
 import com.sajeg.storycreator.states.HistoryState
 import kotlinx.coroutines.launch
 import org.json.JSONObject
@@ -85,10 +87,8 @@ import org.json.JSONObject
 @Composable
 fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     val context = LocalContext.current
-    val tts = remember { initTextToSpeech(context) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
-    var ttsFinished by remember { mutableStateOf(false) }
     var title by remember { mutableStateOf("Story Smith") }
     var id by remember { mutableIntStateOf(-1) }
     var readAloud by remember { mutableStateOf(false) }
@@ -96,6 +96,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     var requestOngoing by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
+    val actionState by remember { mutableStateOf<ActionState>(ActionState.Speaking) }
     var isEditing by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val gradientColors = listOf(
@@ -222,6 +223,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         if (!lastElement.isPlaceholder()) {
                             var micPermission by remember { mutableStateOf(true) }
                             var pressed by remember { mutableStateOf(false) }
+                            TTS.initTextToSpeech(LocalContext.current)
                             IconButton(
                                 onClick = {
                                     micPermission = ContextCompat.checkSelfPermission(
@@ -231,9 +233,8 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
 
                                     if (readAloud && micPermission) {
                                         readAloud = false
-                                        tts.stop()
-                                        history.parts[history.parts.lastIndex].wasReadAloud =
-                                            false
+                                        TTS.stop()
+                                        history.parts.last().wasReadAloud = false
                                     } else if (micPermission) {
                                         readAloud = true
                                     }
@@ -442,37 +443,59 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         coroutineScope.launch {
                             listState.animateScrollToItem(index = history.parts.size)
                         }
-                        if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
-                            ttsFinished = false
-                            lastElement.wasReadAloud = true
-                            tts.speak(
-                                lastElement.content,
-                                TextToSpeech.QUEUE_FLUSH,
-                                null,
-                                "MODEL_MESSAGE"
-                            )
-                            tts.setOnUtteranceProgressListener(object :
-                                UtteranceProgressListener() {
-                                override fun onDone(utteranceId: String) {
-                                    ttsFinished = true
-                                    Log.d("StorySmithTTS", "Finished")
-                                }
-
-                                @Deprecated("Deprecated in Java")
-                                override fun onError(utteranceId: String?) {
-                                }
-
-                                override fun onStart(utteranceId: String) {
-                                }
-                            })
-                        }
-                        if (ttsFinished and readAloud) {
-                            ttsFinished = false
-                            SpeechRecognition.startRecognition()
+                        if (lastElement.isModel() && !history.parts.last().wasReadAloud && readAloud) {
+                            history.parts.last().wasReadAloud = true
+                            TTS.speak(lastElement.content)
                         }
                     }
                     if (readAloud) {
-                        // ToDo
+                        Row {
+                            IconButton(onClick = {
+                                if (SpeechRecognition.isListening()) {
+                                    SpeechRecognition.stopRecognition()
+                                } else {
+                                    SpeechRecognition.startRecognition()
+                                }
+                            }) {
+                                Icon(
+                                    painter = painterResource(
+                                        if (SpeechRecognition.isListening()) R.drawable.mic_off else R.drawable.mic
+                                    ),
+                                    contentDescription = ""
+                                )
+                            }
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                shape = RoundedCornerShape(20.dp),
+                                border = BorderStroke(
+                                    1.dp,
+                                    Brush.linearGradient(colors = gradientColors)
+                                ),
+                            ) {
+                                when (actionState) {
+                                    is ActionState.Speaking -> {
+                                        Text(text = "AI is speaking...")
+                                    }
+                                    is ActionState.Listening -> {
+                                        Text(text = "AI is listening...")
+                                    }
+                                    is ActionState.Thinking -> {
+                                        Text(text = "AI is thinking...")
+                                    }
+                                    is ActionState.Error -> {
+                                        Text(text = "Error: ${(actionState as ActionState.Error).code}")
+                                    }
+                                }
+                            }
+                            Text(text = "Recognizing")
+                            IconButton(onClick = { /*TODO*/ }) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.skip_next),
+                                    contentDescription = ""
+                                )
+                            }
+                        }
                     } else {
                         EnterText(
                             modifier = Modifier.weight(0.1f),
@@ -624,11 +647,3 @@ fun DisplayHistory(historyState: HistoryState, id: Int, navController: NavContro
     }
 }
 
-fun initTextToSpeech(context: Context): TextToSpeech {
-    val tts = TextToSpeech(context) { status ->
-        if (status != TextToSpeech.SUCCESS) {
-            Log.e("StorySmithTTS", "Error Initializing TTS engine")
-        }
-    }
-    return tts
-}

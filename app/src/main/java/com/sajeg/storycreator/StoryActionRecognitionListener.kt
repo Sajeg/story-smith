@@ -2,9 +2,6 @@ package com.sajeg.storycreator
 
 import android.os.Bundle
 import android.speech.RecognitionListener
-import android.speech.SpeechRecognizer
-import android.util.Log
-import org.json.JSONObject
 
 class StoryActionRecognitionListener : RecognitionListener {
 
@@ -30,41 +27,12 @@ class StoryActionRecognitionListener : RecognitionListener {
 
     override fun onError(error: Int) {
         // Called when an error occurs
-        Log.e("RecognitionListener", "Error Recognizing Speech. ERROR CODE: $error")
+        SpeechRecognition.errorResponse(error)
     }
 
     override fun onResults(results: Bundle?) {
         // Called when a set of speech recognition results is available
-        val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-        if (!matches.isNullOrEmpty()) {
-            val speechOutput = matches[0]
-            Log.d("RecognitionListener", speechOutput)
-
-
-            history.parts.add(StoryPart("Sajeg", speechOutput))
-            AiCore.action(speechOutput, responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                if (!error) {
-                    history.parts.add(
-                        StoryPart(
-                            role = "Gemini",
-                            content = response!!.getString("story"),
-                            suggestions = response.getJSONArray("suggestions") as Array<String>
-                        )
-                    )
-                } else {
-                    history.title = "Error"
-                    history.isEnded = true
-                    history.parts.add(
-                        StoryPart(
-                            role = "Gemini",
-                            content = "A error occurred: $errorDesc",
-                        )
-                    )
-                }
-            })
-
-
-        }
+        SpeechRecognition.resultResponse(results)
     }
 
     override fun onPartialResults(partialResults: Bundle?) {
