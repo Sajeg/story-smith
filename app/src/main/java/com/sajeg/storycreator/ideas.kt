@@ -1,6 +1,7 @@
 package com.sajeg.storycreator
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.text.intl.Locale
 
 @Composable
 fun getIdeas(count: Int): List<String> {
@@ -37,5 +38,41 @@ fun getIdeas(count: Int): List<String> {
         "A world government is controlled by artificial intelligence."
     )
 
-    return ideas.toList().shuffled().take(count)
+    val ideasDe: Array<String> = arrayOf(
+        "Ein alter Fluch erwacht in einem verschlafenen Dorf.",
+        "Ein Astronaut entdeckt eine rätselhafte außerirdische Struktur.",
+        "Ein junger Hacker enthüllt eine globale Verschwörung.",
+        "Eine geheime Gesellschaft kontrolliert die Weltwirtschaft.",
+        "Ein Zeitreisender verändert die Vergangenheit mit fatalen Folgen.",
+        "Eine künstliche Intelligenz entwickelt ein eigenes Bewusstsein.",
+        "Ein Serienkiller terrorisiert eine Großstadt.",
+        "Ein verschollenes Schiff wird mit einer schrecklichen Besatzung gefunden.",
+        "Ein Wissenschaftler entdeckt eine Möglichkeit, die Zukunft vorherzusagen.",
+        "Ein junger Erfinder entwickelt eine Technologie, die die Welt verändert.",
+        "Eine Gruppe Überlebender kämpft um das Überleben in einer postapokalyptischen Welt.",
+        "Ein Detektiv untersucht eine Reihe von scheinbar zusammenhanglosen Morden.",
+        "Ein junges Mädchen besitzt die Fähigkeit, mit Tieren zu kommunizieren.",
+        "Ein alter Mythos erweist sich als erschreckende Realität.",
+        "Ein Politiker wird von einer geheimen Organisation erpresst.",
+        "Ein verstecktes Labor entwickelt gefährliche Experimente.",
+        "Eine Frau erwacht aus einem Koma mit außergewöhnlichen Fähigkeiten.",
+        "Ein Paralleluniversum existiert neben unserer Realität.",
+        "Ein alter Mann bewahrt ein dunkles Geheimnis.",
+        "Eine Gruppe von Freunden gründet eine Geheimgesellschaft.",
+        "Ein Virus verwandelt Menschen in aggressive Mutanten.",
+        "Ein Schatzjäger entdeckt eine versunkene Stadt.",
+        "Ein Kunstdieb wird in eine gefährliche Intrige verwickelt.",
+        "Ein junger Schriftsteller wird von einer mysteriösen Muse inspiriert.",
+        "Ein Astronaut strandet auf einem fremden Planeten.",
+        "Eine Gruppe von Teenagern entdeckt eine geheime Unterwelt.",
+        "Ein altes Familienrezept birgt ein tödliches Geheimnis.",
+        "Ein Medium erhält Visionen von zukünftigen Katastrophen.",
+        "Ein Wissenschaftler entwickelt eine Zeitmaschine.",
+        "Ein unsichtbarer Feind terrorisiert eine kleine Stadt."
+    )
+    return if (Locale.current.language == "de") {
+        ideasDe.toList().shuffled().take(count)
+    } else {
+        ideas.toList().shuffled().take(count)
+    }
 }

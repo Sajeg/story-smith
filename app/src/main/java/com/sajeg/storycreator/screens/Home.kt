@@ -1,6 +1,7 @@
 package com.sajeg.storycreator.screens
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -47,7 +49,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -73,12 +77,16 @@ fun Home(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
     var isRunning by remember { mutableStateOf(false) }
-    val ideas = getIdeas(count = 3)
+    var ideas by remember { mutableStateOf(mutableListOf("")) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
         MaterialTheme.colorScheme.tertiary
     )
+    if (ideas[0] == "") {
+        ideas = getIdeas(count = 3).toMutableList()
+    }
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
@@ -175,7 +183,8 @@ fun Home(navController: NavController) {
                         verticalArrangement = Arrangement.Bottom
                     ) {
                         val now = System.currentTimeMillis() / 1000
-                        if (stories != null) {
+
+                        if (stories != null && !WindowInsets.isImeVisible) {
                             if (stories!!.size > 2) {
                                 for (i in 0..2) {
                                     val story = stories!![2 - i]
@@ -216,7 +225,7 @@ fun Home(navController: NavController) {
                                                         .padding(top = 5.dp)
                                                 ) {
                                                     Text(
-                                                        text = formatTime(passedTime),
+                                                        text = formatTime(passedTime, LocalContext.current),
                                                         fontStyle = FontStyle.Italic,
                                                         fontSize = 15.sp,
                                                         textAlign = TextAlign.End
@@ -240,7 +249,8 @@ fun Home(navController: NavController) {
                                     Text(
                                         modifier = Modifier
                                             .padding(20.dp),
-                                        text = "Start by choosing a suggestion or typing in the field below")
+                                        text = stringResource(R.string.start_tipp)
+                                    )
                                 }
                             }
                         }
@@ -266,18 +276,18 @@ fun Home(navController: NavController) {
     }
 }
 
-fun formatTime(time: Long): String {
+fun formatTime(time: Long, context: Context): String {
     val minutes = time / 60
     val hours = minutes / 60
     val days = hours / 24
     val weeks = days / 7
 
     return when {
-        weeks > 0 -> "$weeks weeks ago"
-        days > 0 -> "$days days ago"
-        hours > 0 -> "$hours hours ago"
-        minutes > 5 -> "$minutes minutes ago"
-        else -> "now"
+        weeks > 0 -> context.getString(R.string.weeks, weeks.toString())
+        days > 0 -> context.getString(R.string.days, days.toString())
+        hours > 0 -> context.getString(R.string.hours, hours.toString())
+        minutes > 5 -> context.getString(R.string.minutes, minutes.toString())
+        else -> context.getString(R.string.now)
     }
 }
 
@@ -310,9 +320,13 @@ fun CreateBackground() {
             text = text,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
         )
+        Log.d("text Height",textHeight.toString())
+        Log.d("Screen height",screenHeight.toString())
         if (textHeight < screenHeight) {
             Log.d("Background Render", "Not big enough")
             text += text
+        } else {
+            Log.d("Background Render", "Big enough")
         }
     }
 }

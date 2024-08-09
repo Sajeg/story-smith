@@ -30,6 +30,6 @@ object HomeScreen
 
 @Serializable
 data class ChatScreen(
-    val prompt: String,
+    val prompt: String = "",
     val id: Int = -1
 )

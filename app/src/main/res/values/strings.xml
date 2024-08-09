@@ -50,4 +50,10 @@
     <string name="edit_title">Edit Title</string>
     <string name="confirmation_delete">Do you really want to delete the Story?</string>
     <string name="delete_story">Delete Story</string>
+    <string name="start_tipp">Start by choosing a suggestion or typing in the field below</string>
+    <string name="weeks">%1$s weeks ago</string>
+    <string name="days">%1$s days ago</string>
+    <string name="hours">%1$s hours ago</string>
+    <string name="minutes">%1$s minutes ago</string>
+    <string name="now">now</string>
 </resources>
