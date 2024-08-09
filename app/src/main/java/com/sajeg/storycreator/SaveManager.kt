@@ -37,7 +37,7 @@ object SaveManager {
         }
     }
 
-    fun saveStory(data: History, id: Int) {
+    fun saveStory(data: History, id: Int, saveCompleted: () -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val storyDao = db!!.storyDao()
@@ -52,6 +52,7 @@ object SaveManager {
                     }.toString()
                 )
                 storyDao.saveStory(story)
+                saveCompleted()
             } catch (e: Exception) {
                 Log.e("SaveManager", "Saving story failed: ${e.localizedMessage}")
             }
@@ -103,7 +104,7 @@ object SaveManager {
                 saveStory(
                     story,
                     id
-                )
+                ) {}
             }
         }
     }
