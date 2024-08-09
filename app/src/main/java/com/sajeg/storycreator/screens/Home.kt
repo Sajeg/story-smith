@@ -258,7 +258,7 @@ fun Home(navController: NavController) {
                     element.suggestions = ideas.toTypedArray()
                     EnterText(
                         lastElement = element,
-                        isEnded = history.isEnded,
+                        end = history.isEnded,
                         navController = navController,
                         colorOverride = SuggestionChipDefaults.suggestionChipColors(
                             containerColor = MaterialTheme.colorScheme.background

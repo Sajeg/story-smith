@@ -4,6 +4,7 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import com.sajeg.storycreator.states.ActionState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -20,8 +21,11 @@ object TTS {
         }
     }
 
-    fun speak(text: String) {
+    fun isSpeaking(): Boolean {
+        return isSpeaking
+    }
 
+    fun speak(text: String, actionChanged: (state: ActionState) -> Unit) {
         tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -33,12 +37,19 @@ object TTS {
             override fun onDone(utteranceId: String) {
                 isSpeaking = false
                 CoroutineScope(Dispatchers.Main).launch {
+                    actionChanged(ActionState.Listening)
                     SpeechRecognition.startRecognition()
                 }
             }
 
-            @Deprecated("Deprecated in Java")
+            @Deprecated("Deprecated in Java", ReplaceWith(
+                "actionChanged(ActionState.Error(-1))",
+                "com.sajeg.storycreator.states.ActionState"
+            )
+            )
             override fun onError(utteranceId: String?) {
+                isSpeaking = false
+                actionChanged(ActionState.Error(-1))
             }
 
             override fun onStart(utteranceId: String) {

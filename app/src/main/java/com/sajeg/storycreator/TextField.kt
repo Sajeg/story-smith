@@ -37,7 +37,7 @@ import androidx.navigation.NavController
 fun EnterText(
     modifier: Modifier = Modifier,
     lastElement: StoryPart?,
-    isEnded: Boolean,
+    end: Boolean,
     navController: NavController,
     colorOverride: ChipColors? = null,
     isActive: Boolean = true,
@@ -45,6 +45,7 @@ fun EnterText(
 ) {
     var value by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    var isEnded by remember { mutableStateOf(end) }
     var enableInput by remember { mutableStateOf(isActive) }
 
     Column(
@@ -59,7 +60,7 @@ fun EnterText(
                         .fillMaxWidth()
                         .padding(horizontal = 15.dp)
                         .padding(top = 5.dp),
-                    onClick = { navController.navigate(HomeScreen) },
+                    onClick = { navController.navigate(HomeScreen); isEnded = false },
                     content = { Text(text = stringResource(R.string.new_story)) }
                 )
             } else if (!lastElement.isInitializer()) {

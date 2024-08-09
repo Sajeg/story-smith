@@ -7,6 +7,11 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
 import android.util.Log
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -96,7 +101,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     var requestOngoing by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
-    val actionState by remember { mutableStateOf<ActionState>(ActionState.Speaking) }
+    var actionState by remember { mutableStateOf<ActionState>(ActionState.Speaking) }
     var isEditing by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val gradientColors = listOf(
@@ -444,19 +449,31 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             listState.animateScrollToItem(index = history.parts.size)
                         }
                         if (lastElement.isModel() && !history.parts.last().wasReadAloud && readAloud) {
+                            actionState = ActionState.Speaking
                             history.parts.last().wasReadAloud = true
-                            TTS.speak(lastElement.content)
+                            TTS.speak(lastElement.content, actionChanged = { actionState = it })
                         }
                     }
                     if (readAloud) {
-                        Row {
-                            IconButton(onClick = {
-                                if (SpeechRecognition.isListening()) {
-                                    SpeechRecognition.stopRecognition()
-                                } else {
-                                    SpeechRecognition.startRecognition()
-                                }
-                            }) {
+                        Row(
+                            modifier = Modifier
+                                .weight(0.1f)
+                                .padding(top = 5.dp)
+                                .fillMaxWidth()
+                                .weight(0.1F),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                enabled = actionState != ActionState.Speaking,
+                                onClick = {
+                                    if (SpeechRecognition.isListening()) {
+                                        SpeechRecognition.stopRecognition()
+                                    } else {
+                                        SpeechRecognition.startRecognition()
+                                    }
+                                }, modifier = Modifier.weight(0.1F)
+                            ) {
                                 Icon(
                                     painter = painterResource(
                                         if (SpeechRecognition.isListening()) R.drawable.mic_off else R.drawable.mic
@@ -464,32 +481,72 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     contentDescription = ""
                                 )
                             }
+                            val infiniteTransition = rememberInfiniteTransition(label = "ActionState")
+
+                            val scale by infiniteTransition.animateFloat(
+                                initialValue = 1f,
+                                targetValue = 4f,
+                                animationSpec = infiniteRepeatable(
+                                    animation = tween(1000),
+                                    repeatMode = RepeatMode.Reverse
+                                ), label = "ActionState"
+                            )
                             Surface(
                                 modifier = Modifier
+                                    .padding(5.dp)
+                                    .weight(0.5F)
                                     .fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
                                 border = BorderStroke(
-                                    1.dp,
+                                    if (actionState == ActionState.Speaking) scale.dp else 1.dp,
                                     Brush.linearGradient(colors = gradientColors)
                                 ),
                             ) {
+                                val modifier = Modifier.padding(10.dp)
+                                val style = MaterialTheme.typography.bodyLarge
                                 when (actionState) {
                                     is ActionState.Speaking -> {
-                                        Text(text = "AI is speaking...")
+                                        Text(
+                                            text = "AI is speaking...",
+                                            style = style,
+                                            textAlign = TextAlign.Center,
+                                            modifier = modifier
+                                        )
                                     }
+
                                     is ActionState.Listening -> {
-                                        Text(text = "AI is listening...")
+                                        Text(
+                                            text = "AI is listening...",
+                                            style = style,
+                                            textAlign = TextAlign.Center,
+                                            modifier = modifier
+                                        )
                                     }
+
                                     is ActionState.Thinking -> {
-                                        Text(text = "AI is thinking...")
+                                        Text(
+                                            text = "AI is thinking...",
+                                            style = style,
+                                            textAlign = TextAlign.Center,
+                                            modifier = modifier
+                                        )
                                     }
+
+                                    is ActionState.Waiting -> {
+                                        Text(
+                                            text = "AI is waiting...",
+                                            style = style,
+                                            textAlign = TextAlign.Center,
+                                            modifier = modifier
+                                        )
+                                    }
+
                                     is ActionState.Error -> {
                                         Text(text = "Error: ${(actionState as ActionState.Error).code}")
                                     }
                                 }
                             }
-                            Text(text = "Recognizing")
-                            IconButton(onClick = { /*TODO*/ }) {
+                            IconButton(onClick = { TTS.stop() }, modifier = Modifier.weight(0.1F)) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.skip_next),
                                     contentDescription = ""
@@ -500,7 +557,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         EnterText(
                             modifier = Modifier.weight(0.1f),
                             lastElement = history.parts.lastOrNull(),
-                            isEnded = history.isEnded,
+                            end = history.isEnded,
                             navController = navController,
                             onTextSubmitted = {
                                 history.parts.add(StoryPart("Sajeg", it))
