@@ -1,6 +1,7 @@
 package com.sajeg.storycreator.screens
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -59,6 +60,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -81,6 +83,7 @@ import com.sajeg.storycreator.states.StoryState
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
+@SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
@@ -95,7 +98,8 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     var lastElement by remember { mutableStateOf(StoryPart("Placeholder", "")) }
     var requestOngoing by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
-    val storyState by remember { mutableStateOf<StoryState>(StoryState.Idle) }
+    var storyState by remember { mutableStateOf<StoryState>(StoryState.FirstLoading) }
+    val historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
     var isEditing by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val gradientColors = listOf(
@@ -187,7 +191,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     fontSize = 20.sp
                 )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
-                DisplayHistory(id = id, navController = navController)
+                DisplayHistory(historyState, id, navController)
             }
         })
     {
@@ -363,149 +367,178 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     }
                 )
             }
-            if (lastElement.isPlaceholder()) {
 
-                if (paramId == -1) {
-                    SaveManager.getNewId { id = it }
-                } else {
-                    id = paramId
-                    SaveManager.loadStory(id) { newHistory ->
-                        history = newHistory
-                        lastElement = history.parts.last()
-                        title = newHistory.title
+            // The Data Processing
+            when (storyState) {
+                is StoryState.FirstLoading -> {
+                    if (paramId == -1) {
+                        SaveManager.getNewId { newId ->
+                            id = newId
+                            AiCore.action(
+                                "Start the story with the following places and theme: $prompt " +
+                                        "and with the following language: ${Locale.current}",
+                                responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+                                    storyState = if (error) {
+                                        StoryState.Error(errorDesc!!)
+                                    } else {
+                                        StoryState.Response(response!!)
+                                    }
+                                    SaveManager.getStories { fetchedStories ->
+                                        HistoryState.Success(fetchedStories)
+                                    }
+                                }
+                            )
+                        }
+                    } else {
+                        id = paramId
+                        SaveManager.loadStory(id) { newHistory ->
+                            history = newHistory
+                            lastElement = history.parts.last()
+                            title = newHistory.title
+                        }
+                        SaveManager.getStories { fetchedStories ->
+                            HistoryState.Success(fetchedStories)
+                        }
                     }
                 }
-            }
-            when (storyState) {
-                is StoryState.Idle -> {}
-                is StoryState.Response -> {}
+
                 is StoryState.Loading -> {
-                    if (history.parts.size == 0) {
-                        AiCore.action(
-                            "Start the story with the following places and theme: $prompt " +
-                                    "and with the following language: ${Locale.current}",
-                            responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                                if (!error) {
-                                    val story = StoryPart(
-                                        role = "Gemini",
-                                        content = response!!.getString("story"),
-                                    )
-                                    story.parseSuggestions(response.getJSONArray("suggestions"))
-                                    history = History(
-                                        title = response.getString("title"),
-                                        parts = mutableStateListOf(story)
-                                    )
-                                    title = history.title
-                                    lastElement = story
-                                    SaveManager.saveStory(history, id)
-                                } else {
-                                    val story = StoryPart(
-                                        role = "Gemini",
-                                        content = "A error occurred: $errorDesc",
-                                    )
-                                    history.title = "Error"
-                                    history.isEnded = true
-                                    history.parts.add(story)
-                                    lastElement = story
+                    AiCore.action(
+                        (storyState as StoryState.Loading).prompt,
+                        responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+                            storyState = if (error) {
+                                StoryState.Error(errorDesc!!)
+                            } else {
+                                StoryState.Response(response!!)
+                            }
+                        })
+                }
+
+                is StoryState.Response -> {
+                    val response = (storyState as StoryState.Response).json
+                    val story = StoryPart(
+                        role = "Gemini",
+                        content = response.getString("story"),
+                    )
+                    story.parseSuggestions(response.getJSONArray("suggestions"))
+                    history = History(
+                        title = response.getString("title"),
+                        parts = mutableStateListOf(story)
+                    )
+                    title = history.title
+                    lastElement = story
+                    SaveManager.saveStory(history, id)
+                }
+
+                is StoryState.Error -> {
+                    val story = StoryPart(
+                        role = "Gemini",
+                        content = (storyState as StoryState.Error).errorDesc,
+                    )
+                    history.title = "Error"
+                    history.isEnded = true
+                    history.parts.add(story)
+                    lastElement = story
+                }
+
+                is StoryState.Idle -> {}
+            }
+
+            // The UI rendering
+            when (storyState) {
+                is StoryState.FirstLoading -> {
+                    Column(
+                        modifier = contentModifier
+                            .padding(innerPadding)
+                            .fillMaxSize(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                else -> {
+                    Column(
+                        modifier = contentModifier
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f),
+                            verticalArrangement = Arrangement.Bottom,
+                            state = listState,
+                            userScrollEnabled = true
+                        ) {
+                            for (element in history.parts) {
+                                item {
+                                    TextList(element = element, isEnded = history.isEnded)
                                 }
-                                requestOngoing = false
+                            }
+                            coroutineScope.launch {
+                                listState.animateScrollToItem(index = history.parts.size)
+                            }
+                            if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
+                                ttsFinished = false
+                                lastElement.wasReadAloud = true
+                                tts.speak(
+                                    lastElement.content,
+                                    TextToSpeech.QUEUE_FLUSH,
+                                    null,
+                                    "MODEL_MESSAGE"
+                                )
+                                tts.setOnUtteranceProgressListener(object :
+                                    UtteranceProgressListener() {
+                                    override fun onDone(utteranceId: String) {
+                                        ttsFinished = true
+                                        Log.d("StorySmithTTS", "Finished")
+                                    }
+
+                                    @Deprecated("Deprecated in Java")
+                                    override fun onError(utteranceId: String?) {
+                                    }
+
+                                    override fun onStart(utteranceId: String) {
+                                    }
+                                })
+                            }
+                            if (ttsFinished and readAloud) {
+                                ttsFinished = false
+                                listenToUserInput(context)
+                            }
+                        }
+                        EnterText(
+                            modifier = Modifier.weight(0.1f),
+                            lastElement = history.parts.lastOrNull(),
+                            isEnded = history.isEnded,
+                            navController = navController,
+                            onTextSubmitted = {
+                                history.parts.add(StoryPart("Sajeg", it))
+                                AiCore.action(
+                                    it,
+                                    responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+                                        if (!error) {
+                                            val story = StoryPart(
+                                                role = "Gemini",
+                                                content = response!!.getString("story"),
+                                            )
+                                            story.parseSuggestions(response.getJSONArray("suggestions"))
+                                            history.parts.add(story)
+                                            SaveManager.saveStory(history, id)
+                                        } else {
+                                            history.title = "Error"
+                                            history.isEnded = true
+                                            history.parts.add(
+                                                StoryPart(
+                                                    role = "Gemini",
+                                                    content = "A error occurred: $errorDesc",
+                                                )
+                                            )
+                                        }
+                                    })
+
                             }
                         )
                     }
-                }
-                is StoryState.Error -> {}
-            }
-            if (storyState == StoryState.Loading) {
-
-                Column(
-                    modifier = contentModifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else {
-                Column(
-                    modifier = contentModifier
-                ) {
-                    LazyColumn(
-                        modifier = Modifier
-                            .weight(1f),
-                        verticalArrangement = Arrangement.Bottom,
-                        state = listState,
-                        userScrollEnabled = true
-                    ) {
-                        for (element in history.parts) {
-                            item {
-                                TextList(element = element, isEnded = history.isEnded)
-                            }
-                        }
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(index = history.parts.size)
-                        }
-                        if (lastElement.isModel() and !lastElement.wasReadAloud and readAloud) {
-                            ttsFinished = false
-                            lastElement.wasReadAloud = true
-                            tts.speak(
-                                lastElement.content,
-                                TextToSpeech.QUEUE_FLUSH,
-                                null,
-                                "MODEL_MESSAGE"
-                            )
-                            tts.setOnUtteranceProgressListener(object :
-                                UtteranceProgressListener() {
-                                override fun onDone(utteranceId: String) {
-                                    ttsFinished = true
-                                    Log.d("StorySmithTTS", "Finished")
-                                }
-
-                                @Deprecated("Deprecated in Java")
-                                override fun onError(utteranceId: String?) {
-                                }
-
-                                override fun onStart(utteranceId: String) {
-                                }
-                            })
-                        }
-                        if (ttsFinished and readAloud) {
-                            ttsFinished = false
-                            listenToUserInput(context)
-                        }
-                    }
-                    EnterText(
-                        modifier = Modifier.weight(0.1f),
-                        lastElement = history.parts.lastOrNull(),
-                        isEnded = history.isEnded,
-                        navController = navController,
-                        onTextSubmitted = {
-                            history.parts.add(StoryPart("Sajeg", it))
-                            AiCore.action(
-                                it,
-                                responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                                    if (!error) {
-                                        val story = StoryPart(
-                                            role = "Gemini",
-                                            content = response!!.getString("story"),
-                                        )
-                                        story.parseSuggestions(response.getJSONArray("suggestions"))
-                                        history.parts.add(story)
-                                        SaveManager.saveStory(history, id)
-                                    } else {
-                                        history.title = "Error"
-                                        history.isEnded = true
-                                        history.parts.add(
-                                            StoryPart(
-                                                role = "Gemini",
-                                                content = "A error occurred: $errorDesc",
-                                            )
-                                        )
-                                    }
-                                })
-
-                        }
-                    )
                 }
             }
         }
@@ -552,10 +585,7 @@ fun TextList(
 }
 
 @Composable
-fun DisplayHistory(id: Int, navController: NavController) {
-    var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
-
-    Log.d("Id", id.toString())
+fun DisplayHistory(historyState: HistoryState, id: Int, navController: NavController) {
     LazyColumn {
         item {
             NavigationDrawerItem(
@@ -578,17 +608,21 @@ fun DisplayHistory(id: Int, navController: NavController) {
                 }
             )
         }
-        when (val state = historyState) {
+        when (historyState) {
             is HistoryState.Loading -> {
-                SaveManager.getStories { fetchedStories ->
-                    historyState = HistoryState.Success(fetchedStories)
+                item {
+                    NavigationDrawerItem(label = { Text(text = stringResource(R.string.loading), fontStyle = FontStyle.Italic) }, selected = false, onClick = {})
                 }
             }
+
             is HistoryState.Error -> {
-                Log.e("StoriesState", "Unknown error occurred")
+                item {
+                    NavigationDrawerItem(label = { Text(text = "Unknown error occurred")}, selected = false, onClick = {})
+                }
             }
+
             is HistoryState.Success -> {
-                items(state.stories) { story ->
+                items(historyState.stories) { story ->
                     NavigationDrawerItem(
                         label = {
                             Row {

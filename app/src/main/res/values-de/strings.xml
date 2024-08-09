@@ -57,4 +57,5 @@
     <string name="hours">Vor %1$s Stunden</string>
     <string name="minutes">Vor %1$s Minuten</string>
     <string name="now">Jetzt</string>
+    <string name="loading">Lädt...</string>
 </resources>
