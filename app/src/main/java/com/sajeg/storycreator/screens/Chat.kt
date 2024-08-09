@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -74,14 +75,15 @@ import com.sajeg.storycreator.SaveManager
 import com.sajeg.storycreator.ShareChat
 import com.sajeg.storycreator.StoryActionRecognitionListener
 import com.sajeg.storycreator.StoryPart
-import com.sajeg.storycreator.StoryTitle
 import com.sajeg.storycreator.history
+import com.sajeg.storycreator.states.HistoryState
+import com.sajeg.storycreator.states.StoryState
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
+fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     val context = LocalContext.current
     val tts = remember { initTextToSpeech(context) }
     val listState = rememberLazyListState()
@@ -93,6 +95,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
     var lastElement by remember { mutableStateOf(StoryPart("Placeholder", "")) }
     var requestOngoing by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val storyState by remember { mutableStateOf<StoryState>(StoryState.Idle) }
     var isEditing by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val gradientColors = listOf(
@@ -119,7 +122,10 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                 painter = painterResource(id = R.drawable.share),
                                 contentDescription = ""
                             )
-                            Text(text = stringResource(R.string.share), modifier = Modifier.padding(start = 8.dp))
+                            Text(
+                                text = stringResource(R.string.share),
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
                     },
                     selected = false,
@@ -160,7 +166,10 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                 painter = painterResource(id = R.drawable.delete),
                                 contentDescription = ""
                             )
-                            Text(text = stringResource(R.string.delete), modifier = Modifier.padding(start = 8.dp))
+                            Text(
+                                text = stringResource(R.string.delete),
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                         }
                     },
                     selected = false,
@@ -172,69 +181,13 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                         }
                     }
                 )
-                Text(text = stringResource(R.string.history), modifier = Modifier.padding(16.dp), fontSize = 20.sp)
+                Text(
+                    text = stringResource(R.string.history),
+                    modifier = Modifier.padding(16.dp),
+                    fontSize = 20.sp
+                )
                 HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
-                var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
-                var isRunning by remember { mutableStateOf(false) }
-                if (id > 0 && !lastElement.isPlaceholder()) {
-                    LazyColumn {
-                        item {
-                            NavigationDrawerItem(
-                                label = {
-                                    Row {
-                                        Icon(
-                                            painter = painterResource(id = R.drawable.add),
-                                            contentDescription = ""
-                                        )
-                                        Text(
-                                            text = stringResource(id = R.string.new_story),
-                                            modifier = Modifier.padding(start = 8.dp)
-                                        )
-                                    }
-                                },
-                                selected = false,
-                                modifier = Modifier.padding(horizontal = 4.dp),
-                                onClick = {
-                                    navController.navigate(HomeScreen)
-                                }
-                            )
-                        }
-                        if (stories == null && !isRunning) {
-                            isRunning = true
-                            SaveManager.getStories { stories = it }
-                        } else if (stories != null) {
-                            for (story in stories!!) {
-                                Log.d("Story", story.title)
-                                item {
-                                    NavigationDrawerItem(
-                                        label = {
-                                            Row {
-                                                Icon(
-                                                    painter = painterResource(id = R.drawable.book),
-                                                    contentDescription = ""
-                                                )
-                                                Text(
-                                                    text = story.title,
-                                                    modifier = Modifier.padding(start = 8.dp)
-                                                )
-                                            }
-                                        },
-                                        selected = story.id == id,
-                                        modifier = Modifier.padding(horizontal = 4.dp),
-                                        onClick = {
-                                            navController.navigate(
-                                                ChatScreen(
-                                                    "",
-                                                    story.id
-                                                )
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                DisplayHistory(id = id, navController = navController)
             }
         })
     {
@@ -411,18 +364,23 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                 )
             }
             if (lastElement.isPlaceholder()) {
-                Column(
-                    modifier = contentModifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator()
+
+                if (paramId == -1) {
+                    SaveManager.getNewId { id = it }
+                } else {
+                    id = paramId
+                    SaveManager.loadStory(id) { newHistory ->
+                        history = newHistory
+                        lastElement = history.parts.last()
+                        title = newHistory.title
+                    }
                 }
-                if (!requestOngoing && paramId == -1) {
-                    requestOngoing = true
-                    SaveManager.getNewId { newId ->
+            }
+            when (storyState) {
+                is StoryState.Idle -> {}
+                is StoryState.Response -> {}
+                is StoryState.Loading -> {
+                    if (history.parts.size == 0) {
                         AiCore.action(
                             "Start the story with the following places and theme: $prompt " +
                                     "and with the following language: ${Locale.current}",
@@ -439,7 +397,7 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                     )
                                     title = history.title
                                     lastElement = story
-                                    SaveManager.saveStory(history, newId)
+                                    SaveManager.saveStory(history, id)
                                 } else {
                                     val story = StoryPart(
                                         role = "Gemini",
@@ -451,19 +409,22 @@ fun Chat(navController: NavController, prompt: String, paramId: Int = -1) {
                                     lastElement = story
                                 }
                                 requestOngoing = false
-                                id = newId
                             }
                         )
                     }
-                } else if (!requestOngoing && paramId > 0) {
-                    id = paramId
-                    requestOngoing = true
-                    SaveManager.loadStory(id) { newHistory ->
-                        history = newHistory
-                        lastElement = history.parts.last()
-                        title = newHistory.title
-                        requestOngoing = false
-                    }
+                }
+                is StoryState.Error -> {}
+            }
+            if (storyState == StoryState.Loading) {
+
+                Column(
+                    modifier = contentModifier
+                        .padding(innerPadding)
+                        .fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator()
                 }
             } else {
                 Column(
@@ -588,6 +549,67 @@ fun TextList(
             .padding(top = 10.dp)
     )
 
+}
+
+@Composable
+fun DisplayHistory(id: Int, navController: NavController) {
+    var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
+
+    Log.d("Id", id.toString())
+    LazyColumn {
+        item {
+            NavigationDrawerItem(
+                label = {
+                    Row {
+                        Icon(
+                            painter = painterResource(id = R.drawable.add),
+                            contentDescription = ""
+                        )
+                        Text(
+                            text = stringResource(id = R.string.new_story),
+                            modifier = Modifier.padding(start = 8.dp)
+                        )
+                    }
+                },
+                selected = false,
+                modifier = Modifier.padding(horizontal = 4.dp),
+                onClick = {
+                    navController.navigate(HomeScreen)
+                }
+            )
+        }
+        when (val state = historyState) {
+            is HistoryState.Loading -> {
+                SaveManager.getStories { fetchedStories ->
+                    historyState = HistoryState.Success(fetchedStories)
+                }
+            }
+            is HistoryState.Error -> {
+                Log.e("StoriesState", "Unknown error occurred")
+            }
+            is HistoryState.Success -> {
+                items(state.stories) { story ->
+                    NavigationDrawerItem(
+                        label = {
+                            Row {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.book),
+                                    contentDescription = ""
+                                )
+                                Text(
+                                    text = story.title,
+                                    modifier = Modifier.padding(start = 8.dp)
+                                )
+                            }
+                        },
+                        selected = story.id == id,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                        onClick = { navController.navigate(ChatScreen(id = story.id)) }
+                    )
+                }
+            }
+        }
+    }
 }
 
 fun initTextToSpeech(context: Context): TextToSpeech {
