@@ -13,6 +13,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -84,8 +85,11 @@ import com.sajeg.storycreator.TTS
 import com.sajeg.storycreator.history
 import com.sajeg.storycreator.states.ActionState
 import com.sajeg.storycreator.states.HistoryState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.json.JSONObject
+
 
 @SuppressLint("UnrememberedMutableState")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -454,10 +458,31 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             TTS.speak(
                                 lastElement.content,
                                 actionChanged = { actionState = it },
-                                onVoiceResults = { processInput(it, id) })
+                                onFinished = {
+                                    if (readAloud) {
+                                        CoroutineScope(Dispatchers.Main).launch {
+                                            SpeechRecognition.startRecognition(
+                                                onResults = { processInput(it, id) },
+                                                onStateChange = { actionState = it }
+                                            )
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                     if (readAloud) {
+                        val infiniteTransition =
+                            rememberInfiniteTransition(label = "ActionState")
+                        val scale by infiniteTransition.animateFloat(
+                            initialValue = 1f,
+                            targetValue = 4f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(1000),
+                                repeatMode = RepeatMode.Reverse
+                            ), label = "ActionState"
+                        )
+
                         Row(
                             modifier = Modifier
                                 .weight(0.1f)
@@ -470,9 +495,11 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             IconButton(
                                 enabled = actionState != ActionState.Speaking,
                                 onClick = {
-                                    if (SpeechRecognition.isListening()) {
+                                    if (actionState == ActionState.Listening) {
+                                        actionState = ActionState.Waiting
                                         SpeechRecognition.stopRecognition()
                                     } else {
+                                        actionState = ActionState.Listening
                                         SpeechRecognition.startRecognition(onStateChange = {
                                             actionState = it
                                         }, onResults = {
@@ -484,22 +511,11 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             ) {
                                 Icon(
                                     painter = painterResource(
-                                        if (SpeechRecognition.isListening()) R.drawable.mic_off else R.drawable.mic
+                                        if (actionState == ActionState.Listening) R.drawable.mic_off else R.drawable.mic
                                     ),
                                     contentDescription = ""
                                 )
                             }
-                            val infiniteTransition =
-                                rememberInfiniteTransition(label = "ActionState")
-
-                            val scale by infiniteTransition.animateFloat(
-                                initialValue = 1f,
-                                targetValue = 4f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1000),
-                                    repeatMode = RepeatMode.Reverse
-                                ), label = "ActionState"
-                            )
                             Surface(
                                 modifier = Modifier
                                     .padding(5.dp)
@@ -516,7 +532,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                 when (actionState) {
                                     is ActionState.Speaking -> {
                                         Text(
-                                            text = "AI is speaking...",
+                                            text = stringResource(R.string.state_speaking),
                                             style = style,
                                             textAlign = TextAlign.Center,
                                             modifier = modifier
@@ -525,7 +541,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
 
                                     is ActionState.Listening -> {
                                         Text(
-                                            text = "AI is listening...",
+                                            text = stringResource(R.string.state_listening),
                                             style = style,
                                             textAlign = TextAlign.Center,
                                             modifier = modifier
@@ -534,7 +550,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
 
                                     is ActionState.Thinking -> {
                                         Text(
-                                            text = "AI is thinking...",
+                                            text = stringResource(R.string.state_thinking),
                                             style = style,
                                             textAlign = TextAlign.Center,
                                             modifier = modifier
@@ -543,7 +559,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
 
                                     is ActionState.Waiting -> {
                                         Text(
-                                            text = "AI is waiting...",
+                                            text = stringResource(R.string.state_waiting),
                                             style = style,
                                             textAlign = TextAlign.Center,
                                             modifier = modifier
@@ -551,11 +567,29 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     }
 
                                     is ActionState.Error -> {
-                                        Text(text = "Error: ${(actionState as ActionState.Error).code}")
+                                        val browserIntent = Intent(
+                                            Intent.ACTION_VIEW,
+                                            Uri.parse("https://developer.android.com/reference/android/speech/SpeechRecognizer")
+                                        )
+
+                                        Text(
+                                            text = stringResource(
+                                                R.string.error,
+                                                (actionState as ActionState.Error).code
+                                            ),
+                                            style = style,
+                                            textAlign = TextAlign.Center,
+                                            modifier = modifier.clickable {
+                                                ContextCompat.startActivity(context, browserIntent, null)
+                                            }
+                                        )
                                     }
                                 }
                             }
-                            IconButton(onClick = { TTS.stop() }, modifier = Modifier.weight(0.1F)) {
+                            IconButton(
+                                onClick = { TTS.stop(); actionState = ActionState.Waiting },
+                                modifier = Modifier.weight(0.1F)
+                            ) {
                                 Icon(
                                     painter = painterResource(id = R.drawable.skip_next),
                                     contentDescription = ""

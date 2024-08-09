@@ -4,28 +4,26 @@ import android.content.Context
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
+import androidx.compose.ui.text.intl.Locale
 import com.sajeg.storycreator.states.ActionState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 object TTS {
     private lateinit var tts: TextToSpeech
-    private var isSpeaking: Boolean = false
 
     fun initTextToSpeech(context: Context){
         tts = TextToSpeech(context) { status ->
             if (status != TextToSpeech.SUCCESS) {
-                Log.e("StorySmithTTS", "Error Initializing TTS engine")
+                Log.e("TTS", "Error Initializing TTS engine")
             }
+        }
+        try {
+            tts.setLanguage(Locale.current.platformLocale)
+        } catch (e: Exception) {
+            Log.d("TTS", "Failed to set right language")
         }
     }
 
-    fun isSpeaking(): Boolean {
-        return isSpeaking
-    }
-
-    fun speak(text: String, actionChanged: (state: ActionState) -> Unit, onVoiceResults: (speechOutput: String) -> Unit) {
+    fun speak(text: String, actionChanged: (state: ActionState) -> Unit, onFinished: () -> Unit) {
         tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -35,11 +33,7 @@ object TTS {
         tts.setOnUtteranceProgressListener(object :
             UtteranceProgressListener() {
             override fun onDone(utteranceId: String) {
-                isSpeaking = false
-                CoroutineScope(Dispatchers.Main).launch {
-                    actionChanged(ActionState.Listening)
-                    SpeechRecognition.startRecognition( onStateChange = {actionChanged(it)}, onResults = { onVoiceResults(it)})
-                }
+                onFinished()
             }
 
             @Deprecated("Deprecated in Java", ReplaceWith(
@@ -48,18 +42,20 @@ object TTS {
             )
             )
             override fun onError(utteranceId: String?) {
-                isSpeaking = false
                 actionChanged(ActionState.Error(-1))
             }
 
             override fun onStart(utteranceId: String) {
-                isSpeaking = true
+                actionChanged(ActionState.Speaking)
             }
         })
     }
 
     fun stop() {
-        isSpeaking = false
         tts.stop()
+    }
+
+    fun destroy() {
+        tts.shutdown()
     }
 }

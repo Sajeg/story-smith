@@ -69,7 +69,6 @@ object SaveManager {
             for (message in content) {
                 val suggestions = arrayOf("", "", "")
                 for ((i, suggestion) in message.jsonObject["suggestions"]!!.jsonArray.withIndex()) {
-                    Log.d("Suggestions", suggestion.toString())
                     suggestions[i] = suggestion.toString().replace('"', ' ').trim()
                 }
                 parts.add(

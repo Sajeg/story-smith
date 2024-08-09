@@ -58,4 +58,9 @@
     <string name="minutes">Vor %1$s Minuten</string>
     <string name="now">Jetzt</string>
     <string name="loading">Lädt...</string>
+    <string name="error">Fehler: %1$s</string>
+    <string name="state_waiting">Smith wartet...</string>
+    <string name="state_thinking">Smith denkt...</string>
+    <string name="state_listening">Smith hört zu...</string>
+    <string name="state_speaking">Smith spricht...</string>
 </resources>

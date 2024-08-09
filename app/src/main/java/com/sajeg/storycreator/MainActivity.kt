@@ -156,6 +156,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        TTS.destroy()
         SpeechRecognition.destroy()
     }
 }

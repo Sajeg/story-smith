@@ -51,11 +51,8 @@ object SpeechRecognition {
         }
     }
 
-    fun isListening() : Boolean{
-        return isListening
-    }
-
     fun stopRecognition() {
+        onStateChangeCallback?.invoke(ActionState.Waiting)
         isListening = false
         stt.stopListening()
     }
@@ -74,6 +71,7 @@ object SpeechRecognition {
     fun startRecognition(onResults: (speechOutput: String) -> Unit, onStateChange: (newState: ActionState) -> Unit) {
         isListening = true
         onResultsCallback = onResults
+        onStateChangeCallback = onStateChange
         stt.startListening(intent)
     }
 

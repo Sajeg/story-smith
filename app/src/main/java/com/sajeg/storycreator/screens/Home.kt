@@ -2,7 +2,6 @@ package com.sajeg.storycreator.screens
 
 import android.annotation.SuppressLint
 import android.content.Context
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +19,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
@@ -31,7 +29,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
@@ -66,6 +63,7 @@ import com.sajeg.storycreator.StoryPart
 import com.sajeg.storycreator.StoryTitle
 import com.sajeg.storycreator.getIdeas
 import com.sajeg.storycreator.history
+import com.sajeg.storycreator.states.HistoryState
 import kotlinx.coroutines.launch
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
@@ -78,6 +76,7 @@ fun Home(navController: NavController) {
     var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
     var isRunning by remember { mutableStateOf(false) }
     var ideas by remember { mutableStateOf(mutableListOf("")) }
+    var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
         MaterialTheme.colorScheme.secondary,
@@ -94,41 +93,7 @@ fun Home(navController: NavController) {
             ModalDrawerSheet {
                 Text(text = "History", modifier = Modifier.padding(16.dp), fontSize = 20.sp)
                 HorizontalDivider(modifier = Modifier.padding(bottom = 4.dp))
-                LazyColumn {
-                    if (stories == null && !isRunning) {
-                        isRunning = true
-                        SaveManager.getStories { stories = it }
-                    } else if (stories != null) {
-                        for (story in stories!!) {
-                            item {
-                                NavigationDrawerItem(
-                                    label = {
-                                        Row {
-                                            Icon(
-                                                painter = painterResource(id = R.drawable.book),
-                                                contentDescription = ""
-                                            )
-                                            Text(
-                                                text = story.title,
-                                                modifier = Modifier.padding(start = 8.dp)
-                                            )
-                                        }
-                                    },
-                                    selected = false,
-                                    modifier = Modifier.padding(horizontal = 4.dp),
-                                    onClick = {
-                                        navController.navigate(
-                                            ChatScreen(
-                                                "",
-                                                story.id
-                                            )
-                                        )
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+                DisplayHistory(historyState = historyState, id = -1, navController = navController)
             }
         })
     {
@@ -164,6 +129,12 @@ fun Home(navController: NavController) {
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
                 .windowInsetsPadding(WindowInsets.ime)
+            if (historyState == HistoryState.Loading) {
+                SaveManager.getStories {
+                    stories = it
+                    historyState = HistoryState.Success(it)
+                }
+            }
             CreateBackground()
             Column(
                 modifier = contentModifier
@@ -225,7 +196,10 @@ fun Home(navController: NavController) {
                                                         .padding(top = 5.dp)
                                                 ) {
                                                     Text(
-                                                        text = formatTime(passedTime, LocalContext.current),
+                                                        text = formatTime(
+                                                            passedTime,
+                                                            LocalContext.current
+                                                        ),
                                                         fontStyle = FontStyle.Italic,
                                                         fontSize = 15.sp,
                                                         textAlign = TextAlign.End
@@ -320,13 +294,8 @@ fun CreateBackground() {
             text = text,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.3f)
         )
-        Log.d("text Height",textHeight.toString())
-        Log.d("Screen height",screenHeight.toString())
         if (textHeight < screenHeight) {
-            Log.d("Background Render", "Not big enough")
             text += text
-        } else {
-            Log.d("Background Render", "Big enough")
         }
     }
 }
