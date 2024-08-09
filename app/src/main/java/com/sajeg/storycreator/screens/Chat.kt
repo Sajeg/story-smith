@@ -451,7 +451,10 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         if (lastElement.isModel() && !history.parts.last().wasReadAloud && readAloud) {
                             actionState = ActionState.Speaking
                             history.parts.last().wasReadAloud = true
-                            TTS.speak(lastElement.content, actionChanged = { actionState = it })
+                            TTS.speak(
+                                lastElement.content,
+                                actionChanged = { actionState = it },
+                                onVoiceResults = { processInput(it, id) })
                         }
                     }
                     if (readAloud) {
@@ -470,7 +473,12 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     if (SpeechRecognition.isListening()) {
                                         SpeechRecognition.stopRecognition()
                                     } else {
-                                        SpeechRecognition.startRecognition()
+                                        SpeechRecognition.startRecognition(onStateChange = {
+                                            actionState = it
+                                        }, onResults = {
+                                            actionState = ActionState.Thinking
+                                            processInput(it, id)
+                                        })
                                     }
                                 }, modifier = Modifier.weight(0.1F)
                             ) {
@@ -481,7 +489,8 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     contentDescription = ""
                                 )
                             }
-                            val infiniteTransition = rememberInfiniteTransition(label = "ActionState")
+                            val infiniteTransition =
+                                rememberInfiniteTransition(label = "ActionState")
 
                             val scale by infiniteTransition.animateFloat(
                                 initialValue = 1f,
@@ -498,7 +507,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     .fillMaxWidth(),
                                 shape = RoundedCornerShape(20.dp),
                                 border = BorderStroke(
-                                    if (actionState == ActionState.Speaking) scale.dp else 1.dp,
+                                    if (actionState == ActionState.Listening) scale.dp else 1.dp,
                                     Brush.linearGradient(colors = gradientColors)
                                 ),
                             ) {
@@ -560,30 +569,8 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             end = history.isEnded,
                             navController = navController,
                             onTextSubmitted = {
-                                history.parts.add(StoryPart("Sajeg", it))
-                                AiCore.action(
-                                    it,
-                                    responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                                        if (!error) {
-                                            val story = StoryPart(
-                                                role = "Gemini",
-                                                content = response!!.getString("story"),
-                                            )
-                                            story.parseSuggestions(response.getJSONArray("suggestions"))
-                                            history.parts.add(story)
-                                            SaveManager.saveStory(history, id) {}
-                                        } else {
-                                            history.title = "Error"
-                                            history.isEnded = true
-                                            history.parts.add(
-                                                StoryPart(
-                                                    role = "Gemini",
-                                                    content = "A error occurred: $errorDesc",
-                                                )
-                                            )
-                                        }
-                                    }
-                                )
+                                actionState = ActionState.Thinking
+                                processInput(it, id)
                             }
                         )
                     }
@@ -630,6 +617,33 @@ fun TextList(
             .padding(top = 10.dp)
     )
 
+}
+
+fun processInput(input: String, id: Int) {
+    history.parts.add(StoryPart("Sajeg", input))
+    AiCore.action(
+        input,
+        responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
+            if (!error) {
+                val story = StoryPart(
+                    role = "Gemini",
+                    content = response!!.getString("story"),
+                )
+                story.parseSuggestions(response.getJSONArray("suggestions"))
+                history.parts.add(story)
+                SaveManager.saveStory(history, id) {}
+            } else {
+                history.title = "Error"
+                history.isEnded = true
+                history.parts.add(
+                    StoryPart(
+                        role = "Gemini",
+                        content = "A error occurred: $errorDesc",
+                    )
+                )
+            }
+        }
+    )
 }
 
 @Composable

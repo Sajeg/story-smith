@@ -25,7 +25,7 @@ object TTS {
         return isSpeaking
     }
 
-    fun speak(text: String, actionChanged: (state: ActionState) -> Unit) {
+    fun speak(text: String, actionChanged: (state: ActionState) -> Unit, onVoiceResults: (speechOutput: String) -> Unit) {
         tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -38,7 +38,7 @@ object TTS {
                 isSpeaking = false
                 CoroutineScope(Dispatchers.Main).launch {
                     actionChanged(ActionState.Listening)
-                    SpeechRecognition.startRecognition()
+                    SpeechRecognition.startRecognition( onStateChange = {actionChanged(it)}, onResults = { onVoiceResults(it)})
                 }
             }
 

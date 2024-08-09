@@ -8,11 +8,13 @@ import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.compose.ui.text.intl.Locale
-import org.json.JSONObject
+import com.sajeg.storycreator.states.ActionState
 
 object SpeechRecognition {
     private lateinit var stt: SpeechRecognizer
     private lateinit var intent: Intent
+    private var onResultsCallback: ((String) -> Unit)? = null
+    private var onStateChangeCallback: ((ActionState) -> Unit)? = null
     private val listener = StoryActionRecognitionListener()
     private var isListening = false
 
@@ -41,7 +43,10 @@ object SpeechRecognition {
         isListening = false
         if (error == 13 && Build.VERSION.SDK_INT >= 33) {
             downloadModel()
+        } else if (error == 7 || error == 1) {
+            onStateChangeCallback?.invoke(ActionState.Waiting)
         } else {
+            onStateChangeCallback?.invoke(ActionState.Error(error))
             Log.e("RecognitionListener", "Error Recognizing Speech. ERROR CODE: $error")
         }
     }
@@ -61,14 +66,15 @@ object SpeechRecognition {
         }
     }
 
-    fun startRecognition() {
-        isListening = true
-        stt.startListening(intent)
-    }
-
     fun destroy() {
         isListening = false
         stt.destroy()
+    }
+
+    fun startRecognition(onResults: (speechOutput: String) -> Unit, onStateChange: (newState: ActionState) -> Unit) {
+        isListening = true
+        onResultsCallback = onResults
+        stt.startListening(intent)
     }
 
     fun resultResponse(results: Bundle?) {
@@ -76,29 +82,7 @@ object SpeechRecognition {
         if (!matches.isNullOrEmpty()) {
             val speechOutput = matches[0]
             Log.d("RecognitionListener", speechOutput)
-
-
-            history.parts.add(StoryPart("Sajeg", speechOutput))
-            AiCore.action(speechOutput, responseFromModel = { response: JSONObject?, error: Boolean, errorDesc: String? ->
-                if (!error) {
-                    history.parts.add(
-                        StoryPart(
-                            role = "Gemini",
-                            content = response!!.getString("story"),
-                            suggestions = response.getJSONArray("suggestions") as Array<String>
-                        )
-                    )
-                } else {
-                    history.title = "Error"
-                    history.isEnded = true
-                    history.parts.add(
-                        StoryPart(
-                            role = "Gemini",
-                            content = "A error occurred: $errorDesc",
-                        )
-                    )
-                }
-            })
+            onResultsCallback?.invoke(speechOutput)
         }
     }
 }
