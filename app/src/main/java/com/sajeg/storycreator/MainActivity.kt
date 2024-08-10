@@ -142,36 +142,40 @@ class MainActivity : ComponentActivity() {
             }
         }
         SpeechRecognition.initRecognition(this)
-        if (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_VIEW) {
-            Log.d("Import", "Import started")
-            val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        var uri: Uri? = null
+        if (intent.action == Intent.ACTION_SEND) {
+            uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM)
             }
-            if (uri != null) {
-                val context = this
-                try {
-                    SaveManager.getNewId { id ->
-                        val story = ShareChat.importChat(this, uri)!!
-                        SaveManager.saveStory(story, id) {
-                            navController.navigate(ChatScreen(id = id))
-                        }
+        } else if (intent.action == Intent.ACTION_VIEW) {
+            uri = intent.data
+        }
+        if (uri != null) {
+            val context = this
+            try {
+                SaveManager.getNewId { id ->
+                    val story = ShareChat.importChat(this, uri)!!
+                    SaveManager.saveStory(story, id) {
                         CoroutineScope(Dispatchers.Main).launch {
+                            navController.navigate(ChatScreen("", id))
                             Toast.makeText(
                                 context, getString(R.string.story_imported),
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
                     }
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        this, getString(R.string.error_importing_story),
-                        Toast.LENGTH_LONG
-                    ).show()
-                    Log.e("ImportChat", "Chat import failed with: $e")
                 }
+            } catch (e: Exception) {
+                Toast.makeText(
+                    this, getString(R.string.error_importing_story),
+                    Toast.LENGTH_LONG
+                ).show()
+                Log.e("ImportChat", "Chat import failed with: $e")
             }
+        } else {
+            Log.d("Import", "Was null")
         }
     }
 
