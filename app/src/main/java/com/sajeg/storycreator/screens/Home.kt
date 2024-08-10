@@ -168,7 +168,7 @@ fun Home(navController: NavController) {
                     text = {
                         Text(text = stringResource(R.string.warning))
                     }
-                    )
+                )
             }
             Column(
                 modifier = contentModifier
@@ -183,16 +183,15 @@ fun Home(navController: NavController) {
                 ) {
                     Column(
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(top = 60.dp),
+                            .weight(1f),
                         verticalArrangement = Arrangement.Bottom
                     ) {
                         val now = System.currentTimeMillis() / 1000
-                        LazyColumn {
+                        LazyColumn (reverseLayout = true) {
                             if (stories != null) {
                                 if (stories!!.size > 2) {
                                     for (i in 0..2) {
-                                        val story = stories!![2 - i]
+                                        val story = stories!![i]
                                         val passedTime = now - story.time
                                         item {
                                             Surface(

@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -580,20 +581,15 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     modifier = contentModifier
                 ) {
                     LazyColumn(
+                        reverseLayout = true,
                         modifier = Modifier
-                            .weight(1f),
-                        verticalArrangement = Arrangement.Bottom,
+                            .weight(1f)
+                            .imePadding(),
                         state = listState,
-                        userScrollEnabled = true
                     ) {
-                        for (element in history.parts) {
-                            item {
-                                TextList(element = element, isEnded = history.isEnded)
+                            items(history.parts.reversed()) {
+                                TextList(element = it, isEnded = history.isEnded)
                             }
-                        }
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(index = history.parts.size)
-                        }
                     }
                     if (readAloud) {
                         val infiniteTransition =
