@@ -74,7 +74,6 @@ fun Home(navController: NavController) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val coroutineScope = rememberCoroutineScope()
     var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
-    var isRunning by remember { mutableStateOf(false) }
     var ideas by remember { mutableStateOf(mutableListOf("")) }
     var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
     val gradientColors = listOf(

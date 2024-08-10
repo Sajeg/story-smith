@@ -84,6 +84,7 @@ import com.sajeg.storycreator.StoryPart
 import com.sajeg.storycreator.TTS
 import com.sajeg.storycreator.history
 import com.sajeg.storycreator.states.ActionState
+import com.sajeg.storycreator.states.AiState
 import com.sajeg.storycreator.states.HistoryState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -106,6 +107,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
     var actionState by remember { mutableStateOf<ActionState>(ActionState.Speaking) }
+    var aiState by remember { mutableStateOf<AiState>(AiState.Waiting) }
     var isEditing by remember { mutableStateOf(false) }
     var isDeleting by remember { mutableStateOf(false) }
     val gradientColors = listOf(
@@ -246,6 +248,23 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                         history.parts.last().wasReadAloud = false
                                     } else if (micPermission) {
                                         readAloud = true
+                                        history.parts.last().wasReadAloud = true
+                                        TTS.speak(
+                                            history.parts.last().content,
+                                            actionChanged = { actionState = it },
+                                            onFinished = {
+                                                actionState = ActionState.Waiting
+                                                if (readAloud) {
+                                                    actionState = ActionState.Listening
+                                                    CoroutineScope(Dispatchers.Main).launch {
+                                                        SpeechRecognition.startRecognition(
+                                                            onResults = { speech -> processInput(speech, id, onStateChanged = { aiState = it}) },
+                                                            onStateChange = { actionState = it }
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        )
                                     }
                                     pressed = true
                                 },
@@ -371,7 +390,32 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     }
                 )
             }
+            when (aiState) {
+                is AiState.Waiting -> {
+                    if (readAloud && !history.parts.last().wasReadAloud) {
+                        history.parts.last().wasReadAloud = true
+                        TTS.speak(
+                            history.parts.last().content,
+                            actionChanged = { actionState = it },
+                            onFinished = {
+                                actionState = ActionState.Waiting
+                                if (readAloud) {
+                                    actionState = ActionState.Listening
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        SpeechRecognition.startRecognition(
+                                            onResults = { it -> processInput(it, id, onStateChanged = { aiState = it}) },
+                                            onStateChange = { actionState = it }
+                                        )
+                                    }
+                                }
+                            }
+                        )
+                    }
+                }
+                is AiState.Generating -> {
 
+                }
+            }
             if (lastElement.isPlaceholder()) {
                 Column(
                     modifier = contentModifier
@@ -452,24 +496,6 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         coroutineScope.launch {
                             listState.animateScrollToItem(index = history.parts.size)
                         }
-                        if (lastElement.isModel() && !history.parts.last().wasReadAloud && readAloud) {
-                            actionState = ActionState.Speaking
-                            history.parts.last().wasReadAloud = true
-                            TTS.speak(
-                                lastElement.content,
-                                actionChanged = { actionState = it },
-                                onFinished = {
-                                    if (readAloud) {
-                                        CoroutineScope(Dispatchers.Main).launch {
-                                            SpeechRecognition.startRecognition(
-                                                onResults = { processInput(it, id) },
-                                                onStateChange = { actionState = it }
-                                            )
-                                        }
-                                    }
-                                }
-                            )
-                        }
                     }
                     if (readAloud) {
                         val infiniteTransition =
@@ -502,9 +528,9 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                         actionState = ActionState.Listening
                                         SpeechRecognition.startRecognition(onStateChange = {
                                             actionState = it
-                                        }, onResults = {
+                                        }, onResults = { speech ->
                                             actionState = ActionState.Thinking
-                                            processInput(it, id)
+                                            processInput(speech, id, onStateChanged = { aiState = it})
                                         })
                                     }
                                 }, modifier = Modifier.weight(0.1F)
@@ -580,7 +606,11 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                             style = style,
                                             textAlign = TextAlign.Center,
                                             modifier = modifier.clickable {
-                                                ContextCompat.startActivity(context, browserIntent, null)
+                                                ContextCompat.startActivity(
+                                                    context,
+                                                    browserIntent,
+                                                    null
+                                                )
                                             }
                                         )
                                     }
@@ -602,9 +632,9 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             lastElement = history.parts.lastOrNull(),
                             end = history.isEnded,
                             navController = navController,
-                            onTextSubmitted = {
+                            onTextSubmitted = { input ->
                                 actionState = ActionState.Thinking
-                                processInput(it, id)
+                                processInput(input, id, onStateChanged = { aiState = it})
                             }
                         )
                     }
@@ -653,7 +683,8 @@ fun TextList(
 
 }
 
-fun processInput(input: String, id: Int) {
+fun processInput(input: String, id: Int, onStateChanged: (newState: AiState) -> Unit) {
+    onStateChanged(AiState.Generating)
     history.parts.add(StoryPart("Sajeg", input))
     AiCore.action(
         input,
@@ -666,6 +697,7 @@ fun processInput(input: String, id: Int) {
                 story.parseSuggestions(response.getJSONArray("suggestions"))
                 history.parts.add(story)
                 SaveManager.saveStory(history, id) {}
+                onStateChanged(AiState.Waiting)
             } else {
                 history.title = "Error"
                 history.isEnded = true
