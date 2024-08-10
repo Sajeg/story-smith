@@ -126,7 +126,7 @@ object SaveManager {
         }
     }
 
-    fun saveBoolean(value: String, data: Int, context: Context) {
+    fun saveInt(value: String, data: Int, context: Context) {
         val valueKey = intPreferencesKey(value)
         CoroutineScope(Dispatchers.IO).launch {
             context.dataStore.edit { settings ->
@@ -144,7 +144,7 @@ object SaveManager {
         }
     }
 
-    fun saveBoolean(value: String, data: Boolean, context: Context) {
+    fun saveInt(value: String, data: Boolean, context: Context) {
         val valueKey = booleanPreferencesKey(value)
         CoroutineScope(Dispatchers.IO).launch {
             context.dataStore.edit { settings ->

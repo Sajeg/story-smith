@@ -5,10 +5,13 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
 import androidx.compose.ui.text.intl.Locale
+import androidx.compose.ui.text.intl.PlatformLocale
 import com.sajeg.storycreator.states.ActionState
 
 object TTS {
     private lateinit var tts: TextToSpeech
+    private lateinit var language: PlatformLocale
+    private var onStateChangeCallback: ((ActionState) -> Unit)? = null
 
     fun initTextToSpeech(context: Context){
         tts = TextToSpeech(context) { status ->
@@ -17,13 +20,22 @@ object TTS {
             }
         }
         try {
-            tts.setLanguage(Locale.current.platformLocale)
+            SaveManager.readInt("language", context) {
+                val languageCode = arrayOf("en-US", "de-DE", "fr-FR", "es-ES", "it-IT")
+                language = if (it == null) {
+                    Locale.current.platformLocale
+                } else {
+                    java.util.Locale.forLanguageTag(languageCode[it])
+                }
+            }
         } catch (e: Exception) {
             Log.d("TTS", "Failed to set right language")
         }
     }
 
     fun speak(text: String, actionChanged: (state: ActionState) -> Unit, onFinished: () -> Unit) {
+        onStateChangeCallback = actionChanged
+        tts.setLanguage(language)
         tts.speak(
             text,
             TextToSpeech.QUEUE_FLUSH,
@@ -33,16 +45,12 @@ object TTS {
         tts.setOnUtteranceProgressListener(object :
             UtteranceProgressListener() {
             override fun onDone(utteranceId: String) {
+                onStateChangeCallback!!.invoke(ActionState.Waiting)
                 onFinished()
             }
 
-            @Deprecated("Deprecated in Java", ReplaceWith(
-                "actionChanged(ActionState.Error(-1))",
-                "com.sajeg.storycreator.states.ActionState"
-            )
-            )
             override fun onError(utteranceId: String?) {
-                actionChanged(ActionState.Error(-1))
+                onStateChangeCallback!!.invoke(ActionState.Error(-1))
             }
 
             override fun onStart(utteranceId: String) {
@@ -57,5 +65,9 @@ object TTS {
 
     fun destroy() {
         tts.shutdown()
+    }
+
+    fun setLanguage(language: String) {
+        tts.language = java.util.Locale.forLanguageTag(language)
     }
 }

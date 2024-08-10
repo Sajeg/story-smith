@@ -32,10 +32,20 @@ object SpeechRecognition {
             RecognizerIntent.EXTRA_LANGUAGE_MODEL,
             RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
         )
-        intent.putExtra(
-            RecognizerIntent.EXTRA_LANGUAGE,
-            Locale.current.language + "-" + Locale.current.region
-        )
+        SaveManager.readInt("language", context) {
+            val languageCode = arrayOf("en-US", "de-DE", "fr-FR", "es-ES", "it-IT")
+            if (it == null) {
+                intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE,
+                    Locale.current.language + "-" + Locale.current.region
+                )
+            } else {
+                intent.putExtra(
+                    RecognizerIntent.EXTRA_LANGUAGE,
+                    languageCode[it]
+                )
+            }
+        }
         stt.setRecognitionListener(listener)
     }
 
@@ -68,7 +78,10 @@ object SpeechRecognition {
         stt.destroy()
     }
 
-    fun startRecognition(onResults: (speechOutput: String) -> Unit, onStateChange: (newState: ActionState) -> Unit) {
+    fun startRecognition(
+        onResults: (speechOutput: String) -> Unit,
+        onStateChange: (newState: ActionState) -> Unit
+    ) {
         isListening = true
         onResultsCallback = onResults
         onStateChangeCallback = onStateChange
@@ -82,5 +95,12 @@ object SpeechRecognition {
             Log.d("RecognitionListener", speechOutput)
             onResultsCallback?.invoke(speechOutput)
         }
+    }
+
+    fun setLanguage(language: String) {
+        intent.putExtra(
+            RecognizerIntent.EXTRA_LANGUAGE,
+            language
+        )
     }
 }

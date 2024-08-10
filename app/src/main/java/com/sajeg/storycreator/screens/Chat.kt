@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -71,6 +73,7 @@ import androidx.compose.ui.text.intl.Locale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavController
 import com.sajeg.storycreator.AiCore
@@ -237,7 +240,6 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         if (!lastElement.isPlaceholder()) {
                             var micPermission by remember { mutableStateOf(true) }
                             var pressed by remember { mutableStateOf(false) }
-                            TTS.initTextToSpeech(LocalContext.current)
                             IconButton(
                                 onClick = {
                                     micPermission = ContextCompat.checkSelfPermission(
@@ -417,33 +419,62 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     "language",
                     LocalContext.current,
                     onResponse = {
-                        selected = it ?: languageCode.indexOf("${Locale.current.language}-${Locale.current.region}")
+                        selected = it
+                            ?: languageCode.indexOf("${Locale.current.language}-${Locale.current.region}")
                     })
-                AlertDialog(
-                    modifier = Modifier.height(250.dp),
-                    onDismissRequest = { showLanguageSelection = false },
-                    confirmButton = { TextButton(onClick = { /*TODO*/ }) {
-                        Text(text = stringResource(id = R.string.confirm))
-                    } },
-                    title = { Text(text = stringResource(R.string.conversation_language)) },
-                    text = {
-                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
-                        LazyColumn {
-                            for (i in languages.indices) {
-                                item {
-                                    Row (
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        RadioButton(
-                                            selected = i == selected,
-                                            onClick = { /*TODO*/ })
-                                        Text(text = languages[i])
+                Dialog(onDismissRequest = { showLanguageSelection = false }) {
+                    Surface(
+                        shape = RoundedCornerShape(28.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer
+                    ) {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.conversation_language),
+                                style = MaterialTheme.typography.titleLarge,
+                                modifier = Modifier.padding(20.dp)
+                            )
+                            HorizontalDivider()
+                            LazyColumn(
+                                Modifier
+                                    .selectableGroup()
+                                    .height(160.dp)
+                            ) {
+                                for (i in languages.indices) {
+                                    item {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().
+                                            selectable(i == selected) { selected = i },
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = i == selected,
+                                                onClick = { selected = i })
+                                            Text(text = languages[i], modifier = Modifier.padding(horizontal = 10.dp))
+                                        }
                                     }
                                 }
                             }
+                            HorizontalDivider()
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                horizontalArrangement = Arrangement.End,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                TextButton(onClick = { showLanguageSelection = false }) {
+                                    Text(text = stringResource(id = R.string.dismiss))
+                                }
+                                TextButton(onClick = {
+                                    showLanguageSelection = false
+                                    SaveManager.saveInt("language", selected, context)
+                                    TTS.setLanguage(languageCode[selected])
+                                    SpeechRecognition.setLanguage(languageCode[selected])
+                                }) {
+                                    Text(text = stringResource(id = R.string.confirm))
+                                }
+                            }
                         }
-                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
-                    })
+                    }
+                }
             }
             when (aiState) {
                 is AiState.Waiting -> {

@@ -144,7 +144,7 @@ fun Home(navController: NavController) {
                 AlertDialog(
                     onDismissRequest = {
                         warningDisplayed = true
-                        SaveManager.saveBoolean(
+                        SaveManager.saveInt(
                             "warningShown",
                             true,
                             context
@@ -153,7 +153,7 @@ fun Home(navController: NavController) {
                     confirmButton = {
                         TextButton(onClick = {
                             warningDisplayed = true
-                            SaveManager.saveBoolean(
+                            SaveManager.saveInt(
                                 "warningShown",
                                 true,
                                 context

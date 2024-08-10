@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.core.content.ContextCompat
@@ -44,13 +45,13 @@ class MainActivity : ComponentActivity() {
         ) { permissionAccepted ->
             Log.d("PermissionManager", permissionAccepted.toString())
             if (permissionAccepted) {
-                SaveManager.saveBoolean(
+                SaveManager.saveInt(
                     "micAllowed",
                     true,
                     this
                 )
             } else {
-                SaveManager.saveBoolean(
+                SaveManager.saveInt(
                     "micAllowed",
                     false,
                     this
@@ -67,7 +68,7 @@ class MainActivity : ComponentActivity() {
                     SaveManager.initDatabase(this)
                     val navController = rememberNavController()
                     SetupNavGraph(navController = navController)
-
+                    TTS.initTextToSpeech(LocalContext.current)
                     if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
                         != PackageManager.PERMISSION_GRANTED
                     ) {
@@ -76,7 +77,7 @@ class MainActivity : ComponentActivity() {
                         if (askForMicPermission) {
                             AlertDialog(
                                 onDismissRequest = {
-                                    SaveManager.saveBoolean(
+                                    SaveManager.saveInt(
                                         "micAllowed",
                                         false,
                                         this
@@ -93,7 +94,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 dismissButton = {
                                     TextButton(onClick = {
-                                        SaveManager.saveBoolean(
+                                        SaveManager.saveInt(
                                             "micAllowed",
                                             false,
                                             this
