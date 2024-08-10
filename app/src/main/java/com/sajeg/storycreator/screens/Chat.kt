@@ -442,21 +442,27 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                 for (i in languages.indices) {
                                     item {
                                         Row(
-                                            modifier = Modifier.fillMaxWidth().
-                                            selectable(i == selected) { selected = i },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .selectable(i == selected) { selected = i },
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             RadioButton(
                                                 selected = i == selected,
                                                 onClick = { selected = i })
-                                            Text(text = languages[i], modifier = Modifier.padding(horizontal = 10.dp))
+                                            Text(
+                                                text = languages[i],
+                                                modifier = Modifier.padding(horizontal = 10.dp)
+                                            )
                                         }
                                     }
                                 }
                             }
                             HorizontalDivider()
                             Row(
-                                modifier = Modifier.fillMaxWidth().padding(10.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
                                 horizontalArrangement = Arrangement.End,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -637,9 +643,9 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     contentDescription = ""
                                 )
                             }
-                            IconButton(onClick = { showLanguageSelection = true; TTS.stop() }) {
+                            IconButton(onClick = { showLanguageSelection = true }) {
                                 Icon(
-                                    painter = (painterResource(id = R.drawable.outline_language_24)),
+                                    painter = (painterResource(id = R.drawable.language)),
                                     contentDescription = ""
                                 )
                             }
@@ -718,6 +724,23 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                 }
                             }
                             IconButton(
+                                enabled = actionState != ActionState.Speaking,
+                                onClick = {
+                                    TTS.speak(
+                                        history.parts.last().content,
+                                        actionChanged = { actionState = it },
+                                        onFinished = {}); actionState =
+                                    ActionState.Waiting
+                                },
+                                modifier = Modifier.weight(0.1F)
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.play),
+                                    contentDescription = ""
+                                )
+                            }
+                            IconButton(
+                                enabled = actionState == ActionState.Speaking,
                                 onClick = { TTS.stop(); actionState = ActionState.Waiting },
                                 modifier = Modifier.weight(0.1F)
                             ) {

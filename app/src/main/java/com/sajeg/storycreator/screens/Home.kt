@@ -14,11 +14,11 @@ import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -188,77 +188,81 @@ fun Home(navController: NavController) {
                         verticalArrangement = Arrangement.Bottom
                     ) {
                         val now = System.currentTimeMillis() / 1000
-
-                        if (stories != null && !WindowInsets.isImeVisible) {
-                            if (stories!!.size > 2) {
-                                for (i in 0..2) {
-                                    val story = stories!![2 - i]
-                                    val passedTime = now - story.time
-
-                                    Surface(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(vertical = 15.dp, horizontal = 10.dp)
-                                            .clickable {
-                                                navController.navigate(
-                                                    ChatScreen(
-                                                        "",
-                                                        story.id
-                                                    )
-                                                )
-                                            },
-                                        shape = RoundedCornerShape(20.dp),
-                                        border = BorderStroke(
-                                            1.dp,
-                                            Brush.linearGradient(colors = gradientColors)
-                                        ),
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .padding(horizontal = 30.dp)
-                                                .padding(top = 20.dp, bottom = 10.dp)
-                                        ) {
-                                            Column(
+                        LazyColumn {
+                            if (stories != null) {
+                                if (stories!!.size > 2) {
+                                    for (i in 0..2) {
+                                        val story = stories!![2 - i]
+                                        val passedTime = now - story.time
+                                        item {
+                                            Surface(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
+                                                    .padding(vertical = 15.dp, horizontal = 10.dp)
+                                                    .clickable {
+                                                        navController.navigate(
+                                                            ChatScreen(
+                                                                "",
+                                                                story.id
+                                                            )
+                                                        )
+                                                    },
+                                                shape = RoundedCornerShape(20.dp),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    Brush.linearGradient(colors = gradientColors)
+                                                ),
                                             ) {
-                                                Text(text = story.title, fontSize = 20.sp)
-                                                Row(
-                                                    horizontalArrangement = Arrangement.End,
+                                                Box(
                                                     modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(top = 5.dp)
+                                                        .padding(horizontal = 30.dp)
+                                                        .padding(top = 20.dp, bottom = 10.dp)
                                                 ) {
-                                                    Text(
-                                                        text = formatTime(
-                                                            passedTime,
-                                                            LocalContext.current
-                                                        ),
-                                                        fontStyle = FontStyle.Italic,
-                                                        fontSize = 15.sp,
-                                                        textAlign = TextAlign.End
-                                                    )
+                                                    Column(
+                                                        modifier = Modifier
+                                                            .fillMaxWidth()
+                                                    ) {
+                                                        Text(text = story.title, fontSize = 20.sp)
+                                                        Row(
+                                                            horizontalArrangement = Arrangement.End,
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .padding(top = 5.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = formatTime(
+                                                                    passedTime,
+                                                                    LocalContext.current
+                                                                ),
+                                                                fontStyle = FontStyle.Italic,
+                                                                fontSize = 15.sp,
+                                                                textAlign = TextAlign.End
+                                                            )
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
-                            } else {
-                                Surface(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 15.dp, horizontal = 10.dp),
-                                    shape = RoundedCornerShape(20.dp),
-                                    border = BorderStroke(
-                                        1.dp,
-                                        Brush.linearGradient(colors = gradientColors)
-                                    ),
-                                ) {
-                                    Text(
-                                        modifier = Modifier
-                                            .padding(20.dp),
-                                        text = stringResource(R.string.start_tipp)
-                                    )
+                                } else {
+                                    item {
+                                        Surface(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(vertical = 15.dp, horizontal = 10.dp),
+                                            shape = RoundedCornerShape(20.dp),
+                                            border = BorderStroke(
+                                                1.dp,
+                                                Brush.linearGradient(colors = gradientColors)
+                                            ),
+                                        ) {
+                                            Text(
+                                                modifier = Modifier
+                                                    .padding(20.dp),
+                                                text = stringResource(R.string.start_tipp)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

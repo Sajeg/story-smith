@@ -53,16 +53,18 @@ fun EnterText(
     ) {
         if (lastElement != null) {
             if (isEnded) {
-                enableInput = false
-                Button(
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .fillMaxWidth()
-                        .padding(horizontal = 15.dp)
-                        .padding(top = 5.dp),
-                    onClick = { navController.navigate(HomeScreen); isEnded = false },
-                    content = { Text(text = stringResource(R.string.new_story)) }
-                )
+                if (navController.currentDestination!!.route != "com.sajeg.storycreator.HomeScreen") {
+                    enableInput = false
+                    Button(
+                        modifier = Modifier
+                            .align(Alignment.CenterHorizontally)
+                            .fillMaxWidth()
+                            .padding(horizontal = 15.dp)
+                            .padding(top = 5.dp),
+                        onClick = { navController.navigate(HomeScreen); isEnded = false },
+                        content = { Text(text = stringResource(R.string.new_story)) }
+                    )
+                }
             } else if (!lastElement.isInitializer()) {
                 enableInput = lastElement.isModel()
             }

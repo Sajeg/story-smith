@@ -67,7 +67,7 @@ object TTS {
         tts.shutdown()
     }
 
-    fun setLanguage(language: String) {
-        tts.language = java.util.Locale.forLanguageTag(language)
+    fun setLanguage(input: String) {
+        language = java.util.Locale.forLanguageTag(input)
     }
 }

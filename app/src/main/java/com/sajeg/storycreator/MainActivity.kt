@@ -32,13 +32,18 @@ import androidx.core.content.ContextCompat
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.sajeg.storycreator.ui.theme.StoryCreatorTheme
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 var history: History by mutableStateOf(History("N/A", parts = mutableListOf()))
 val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "settings")
 
 class MainActivity : ComponentActivity() {
+    private lateinit var navController: NavHostController
     private val requestPermissionLauncher =
         registerForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -66,7 +71,7 @@ class MainActivity : ComponentActivity() {
             StoryCreatorTheme {
                 Surface(Modifier.fillMaxSize()) {
                     SaveManager.initDatabase(this)
-                    val navController = rememberNavController()
+                    navController = rememberNavController()
                     SetupNavGraph(navController = navController)
                     TTS.initTextToSpeech(LocalContext.current)
                     if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)
@@ -137,19 +142,28 @@ class MainActivity : ComponentActivity() {
             }
         }
         SpeechRecognition.initRecognition(this)
-        if (intent.action == Intent.ACTION_SEND) {
+        if (intent.action == Intent.ACTION_SEND || intent.action == Intent.ACTION_VIEW) {
+            Log.d("Import", "Import started")
             val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
             } else {
                 intent.getParcelableExtra(Intent.EXTRA_STREAM)
             }
             if (uri != null) {
+                val context = this
                 try {
-                    history = ShareChat.importChat(this, uri)!!
-                    Toast.makeText(
-                        this, getString(R.string.story_imported),
-                        Toast.LENGTH_SHORT
-                    ).show()
+                    SaveManager.getNewId { id ->
+                        val story = ShareChat.importChat(this, uri)!!
+                        SaveManager.saveStory(story, id) {
+                            navController.navigate(ChatScreen(id = id))
+                        }
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(
+                                context, getString(R.string.story_imported),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
                 } catch (e: Exception) {
                     Toast.makeText(
                         this, getString(R.string.error_importing_story),
