@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.speech.SpeechRecognizer
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -107,7 +108,12 @@ class MainActivity : ComponentActivity() {
                                 },
                                 text = {
                                     Text(
-                                        text = stringResource(R.string.mic_usage_desc)
+                                        text = if (SpeechRecognizer.isOnDeviceRecognitionAvailable(
+                                                this
+                                            )
+                                        ) stringResource(R.string.mic_usage_desc) else stringResource(
+                                            R.string.mic_usage_desc_not_device
+                                        )
                                     )
                                 },
                                 icon = {

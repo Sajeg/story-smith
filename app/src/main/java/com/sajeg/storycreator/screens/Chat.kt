@@ -341,8 +341,11 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     onDismissRequest = { isEditing = false },
                     confirmButton = {
                         TextButton(onClick = {
-                            SaveManager.changeTitle(id, newTitle); isEditing = false; title =
-                            newTitle
+                            if (newTitle != "") {
+                                SaveManager.changeTitle(id, newTitle)
+                                isEditing = false
+                                title = newTitle
+                            }
                         }) {
                             Text(text = stringResource(id = R.string.confirm))
                         }

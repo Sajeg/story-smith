@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +34,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -75,6 +77,7 @@ fun Home(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
     var stories: List<StoryTitle>? by remember { mutableStateOf(null) }
     var ideas by remember { mutableStateOf(mutableListOf("")) }
+    var warningDisplayed by remember { mutableStateOf(true) }
     var historyState by remember { mutableStateOf<HistoryState>(HistoryState.Loading) }
     val gradientColors = listOf(
         MaterialTheme.colorScheme.primary,
@@ -84,6 +87,7 @@ fun Home(navController: NavController) {
     if (ideas[0] == "") {
         ideas = getIdeas(count = 3).toMutableList()
     }
+    SaveManager.readBoolean("warningShown", LocalContext.current) { warningDisplayed = it ?: false }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -134,7 +138,33 @@ fun Home(navController: NavController) {
                     historyState = HistoryState.Success(it)
                 }
             }
+            val context = LocalContext.current
             CreateBackground()
+            if (!warningDisplayed) {
+                AlertDialog(
+                    onDismissRequest = {
+                        SaveManager.saveBoolean(
+                            "warningShown",
+                            true,
+                            context
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            SaveManager.saveBoolean(
+                                "warningShown",
+                                true,
+                                context
+                            )
+                        }) {
+                            Text(text = stringResource(id = R.string.dismiss))
+                        }
+                    },
+                    text = {
+                        Text(text = stringResource(R.string.warning))
+                    }
+                    )
+            }
             Column(
                 modifier = contentModifier
             ) {
