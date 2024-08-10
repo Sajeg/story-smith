@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -43,6 +44,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -102,6 +104,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
     var title by remember { mutableStateOf("Story Smith") }
     var id by remember { mutableIntStateOf(-1) }
     var readAloud by remember { mutableStateOf(false) }
+    var showLanguageSelection by remember { mutableStateOf(false) }
     var lastElement by remember { mutableStateOf(StoryPart("Placeholder", "")) }
     var requestOngoing by remember { mutableStateOf(false) }
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -258,7 +261,14 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                                     actionState = ActionState.Listening
                                                     CoroutineScope(Dispatchers.Main).launch {
                                                         SpeechRecognition.startRecognition(
-                                                            onResults = { speech -> processInput(speech, id, onStateChanged = { aiState = it}) },
+                                                            onResults = { speech ->
+                                                                processInput(
+                                                                    speech,
+                                                                    id,
+                                                                    onStateChanged = {
+                                                                        aiState = it
+                                                                    })
+                                                            },
                                                             onStateChange = { actionState = it }
                                                         )
                                                     }
@@ -393,6 +403,48 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     }
                 )
             }
+            if (showLanguageSelection) {
+                val languages = arrayOf(
+                    stringResource(R.string.english),
+                    stringResource(R.string.german),
+                    stringResource(R.string.french),
+                    stringResource(R.string.spanish),
+                    stringResource(R.string.italian)
+                )
+                val languageCode = arrayOf("en-US", "de-DE", "fr-FR", "es-ES", "it-IT")
+                var selected by remember { mutableIntStateOf(0) }
+                SaveManager.readInt(
+                    "language",
+                    LocalContext.current,
+                    onResponse = {
+                        selected = it ?: languageCode.indexOf("${Locale.current.language}-${Locale.current.region}")
+                    })
+                AlertDialog(
+                    modifier = Modifier.height(250.dp),
+                    onDismissRequest = { showLanguageSelection = false },
+                    confirmButton = { TextButton(onClick = { /*TODO*/ }) {
+                        Text(text = stringResource(id = R.string.confirm))
+                    } },
+                    title = { Text(text = stringResource(R.string.conversation_language)) },
+                    text = {
+                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                        LazyColumn {
+                            for (i in languages.indices) {
+                                item {
+                                    Row (
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = i == selected,
+                                            onClick = { /*TODO*/ })
+                                        Text(text = languages[i])
+                                    }
+                                }
+                            }
+                        }
+                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                    })
+            }
             when (aiState) {
                 is AiState.Waiting -> {
                     if (readAloud && !history.parts.last().wasReadAloud) {
@@ -406,7 +458,12 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     actionState = ActionState.Listening
                                     CoroutineScope(Dispatchers.Main).launch {
                                         SpeechRecognition.startRecognition(
-                                            onResults = { it -> processInput(it, id, onStateChanged = { aiState = it}) },
+                                            onResults = { it ->
+                                                processInput(
+                                                    it,
+                                                    id,
+                                                    onStateChanged = { aiState = it })
+                                            },
                                             onStateChange = { actionState = it }
                                         )
                                     }
@@ -415,6 +472,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                         )
                     }
                 }
+
                 is AiState.Generating -> {
 
                 }
@@ -533,7 +591,10 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                             actionState = it
                                         }, onResults = { speech ->
                                             actionState = ActionState.Thinking
-                                            processInput(speech, id, onStateChanged = { aiState = it})
+                                            processInput(
+                                                speech,
+                                                id,
+                                                onStateChanged = { aiState = it })
                                         })
                                     }
                                 }, modifier = Modifier.weight(0.1F)
@@ -542,6 +603,12 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                                     painter = painterResource(
                                         if (actionState == ActionState.Listening) R.drawable.mic_off else R.drawable.mic
                                     ),
+                                    contentDescription = ""
+                                )
+                            }
+                            IconButton(onClick = { showLanguageSelection = true; TTS.stop() }) {
+                                Icon(
+                                    painter = (painterResource(id = R.drawable.outline_language_24)),
                                     contentDescription = ""
                                 )
                             }
@@ -637,7 +704,7 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                             navController = navController,
                             onTextSubmitted = { input ->
                                 actionState = ActionState.Thinking
-                                processInput(input, id, onStateChanged = { aiState = it})
+                                processInput(input, id, onStateChanged = { aiState = it })
                             }
                         )
                     }

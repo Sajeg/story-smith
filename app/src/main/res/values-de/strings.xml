@@ -39,4 +39,11 @@
     <string name="state_speaking">Smith spricht...</string>
     <string name="mic_usage_desc_not_device">Das Mikrofon wird für ein noch inmmersiveres Erlebnis verwendet. Die App kann dir die Geschichte vorlesen und du kannst dann mit deiner Stimme antworten. Deine Stimme wird dann zu Google gesendet um diese in Text um zu wandeln.</string>
     <string name="warning">KI kann Fehler machen. Sei also immer vorsichtig, was du fragst, und nehme die Antworten der KI nicht zu ernst. Ich, Sajeg, übernehme keine Verantwortung für die Ergebnisse der KI.</string>
+    <string name="warning_title">Warnung</string>
+    <string name="conversation_language">Sprache der Unterhaltung</string>
+    <string name="english">Englisch</string>
+    <string name="german">Deutsch</string>
+    <string name="french">Französisch</string>
+    <string name="spanish">Spanisch</string>
+    <string name="italian">Italienisch</string>
 </resources>

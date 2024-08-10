@@ -38,4 +38,11 @@
     <string name="state_speaking">Smith is speaking...</string>
     <string name="mic_usage_desc_not_device">The microphone is used for a more immersive experience. The app can read the story to you and then you can respond with your voice. Your voice then will be sent to Google to convert it to text.</string>
     <string name="warning">AI can make mistakes. So always be careful what you ask and do not take the answers of AI too seriously. I, Sajeg, don\'t take any responsibility for the output of AI.</string>
+    <string name="warning_title">Warning</string>
+    <string name="conversation_language">Conversation language</string>
+    <string name="english">English</string>
+    <string name="german">German</string>
+    <string name="french">French</string>
+    <string name="spanish">Spanish</string>
+    <string name="italian">Italian</string>
 </resources>

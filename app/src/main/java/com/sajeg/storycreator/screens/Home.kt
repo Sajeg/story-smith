@@ -143,6 +143,7 @@ fun Home(navController: NavController) {
             if (!warningDisplayed) {
                 AlertDialog(
                     onDismissRequest = {
+                        warningDisplayed = true
                         SaveManager.saveBoolean(
                             "warningShown",
                             true,
@@ -151,6 +152,7 @@ fun Home(navController: NavController) {
                     },
                     confirmButton = {
                         TextButton(onClick = {
+                            warningDisplayed = true
                             SaveManager.saveBoolean(
                                 "warningShown",
                                 true,
@@ -159,6 +161,9 @@ fun Home(navController: NavController) {
                         }) {
                             Text(text = stringResource(id = R.string.dismiss))
                         }
+                    },
+                    title = {
+                        Text(text = stringResource(R.string.warning_title))
                     },
                     text = {
                         Text(text = stringResource(R.string.warning))
