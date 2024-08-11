@@ -384,9 +384,8 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                     onDismissRequest = { isDeleting = false },
                     confirmButton = {
                         TextButton(onClick = {
-                            navController.navigate(HomeScreen); SaveManager.deleteStory(
-                            id
-                        )
+                            SaveManager.deleteStory(id)
+                            navController.navigate(HomeScreen)
                         }) {
                             Text(text = stringResource(id = R.string.confirm))
                         }
@@ -568,6 +567,8 @@ fun Chat(navController: NavController, prompt: String = "", paramId: Int = -1) {
                 } else if (!requestOngoing && paramId > 0) {
                     id = paramId
                     requestOngoing = true
+                    TTS.stop()
+                    readAloud = false
                     SaveManager.loadStory(id) { newHistory ->
                         history = newHistory
                         lastElement = history.parts.last()

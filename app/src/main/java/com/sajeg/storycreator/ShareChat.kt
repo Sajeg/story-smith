@@ -30,7 +30,7 @@ object ShareChat {
     }
 
     fun exportChat(context: Context, data: History) {
-        val tempFile = File(context.cacheDir, "chat.json")
+        val tempFile = File(context.cacheDir, "${data.title.replace(" ", "_")}.json")
         val outputStream = FileOutputStream(tempFile)
 
         val modifiedData = data.toJsonElement()
